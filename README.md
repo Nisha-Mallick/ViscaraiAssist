@@ -126,3 +126,46 @@ npm start
 
 # Open frontend (with Live Server or Firebase Hosting)
 ```
+## 📖 Usage
+
+- Login or Signup via Firebase Auth
+
+- Start survey → Answer guided questions
+
+- Get career suggestions across Current Market, Local, Future
+
+- Choose a career role → See skill gap analysis
+
+- Generate 10-step personalized roadmap
+
+- Download roadmap as PDF + track progress in dashboard
+
+- Continue chatting with AI for career queries
+
+---
+
+## 🧑‍💻 Contributors
+
+### Team ViscariaAssist
+Built for Google Gen AI Exchange Hackathon 2025 with passion.
+
+## ⭐ Future Enhancements
+- Multilingual career guidance (Hindi, Bengali, Tamil, etc.)
+
+-  Mobile app version
+  
+---  
+## 🔄 Process Flow
+
+```mermaid
+flowchart TD
+    A[👩‍🎓 User Login] --> B[📝 Takes Career Survey]
+    B --> C[🤖 Gemini Pro: Analyze Profile]
+    C --> D[📊 AI Career Suggestions 3 Categories]
+    D --> E[✅ User Chooses Career Role]
+    E --> F[🔎 Gemini Pro: Skill Gap Analysis]
+    F --> G[🗺️ AI Roadmap Generated 10 Steps]
+    G --> H[📄 Roadmap PDF Created & Saved]
+    H --> I[📌 Dashboard: Goals, Skills, Roadmap]
+    I --> J[💬 Ongoing Chat with Gemini Flash]
+    J --> K[🎤 Voice Support + Persistent Memory]
