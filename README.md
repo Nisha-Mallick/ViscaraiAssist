@@ -1,5 +1,15 @@
 
-# <img src="https://github.com/Nisha-Mallick/ViscaraiAssist/blob/main/assets/logo.png" alt="ViscariaAssist Logo" width="45" height="45" style="vertical-align:middle; border-radius:50%; margin-right:10px;"/> VISCARIAASSIST
+<table>
+  <tr>
+    <td>
+      <img src=https://github.com/Nisha-Mallick/ViscaraiAssist/blob/main/Clogo_image.png
+           alt="ViscariaAssist Logo" width="70" height="70"/>
+    </td>
+    <td style="padding-left: 15px; vertical-align: middle;">
+      <h1 style="margin: 0;">VISCARIAASSIST</h1>
+    </td>
+  </tr>
+</table>
 
 > **Empowering Careers Through Seamless AI-Driven Guidance**  
 Your personalized AI Career & Skills Advisor built for students and professionals to navigate the evolving job market.
@@ -36,12 +46,13 @@ We integrate **Generative AI + Real-time Data + Skill Analysis** in a single pla
 We carefully selected a **scalable, lightweight, and modern stack**:
 
 ### 🔹 Frontend
-- 🌐 **HTML5**
-- 🎨 **Tailwind CSS**
-- ⚡ **JavaScript (ESM)**
+- <p><img src="https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white" alt="HTML5"/>
+-  <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwind-css&logoColor=white" alt="Tailwind CSS"/>
+-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript"/>
+</p>
 
 ### 🔹 Backend
-- 🟢 **Node.js + Express**
+- <p> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" alt="Node.js"/></p>
 - 🤖 **Google Gemini 2.5 Pro** – Deep analysis (survey, skill gap, roadmap)  
 - ⚡ **Google Gemini 2.5 Flash** – Real-time chat & career Q&A  
 
