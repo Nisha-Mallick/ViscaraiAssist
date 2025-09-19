@@ -27,11 +27,11 @@ No more generic career advice. Each user gets a **custom roadmap**, **actionable
 
 ## ✨ Why ViscariaAssist?
 
-🎯 **Problem We Solve**  
+  **Problem We Solve**  
 Students in India often face confusing career choices, outdated counseling methods, and lack clarity on emerging roles.  
 Our solution dynamically adapts to their profile and provides **personalized AI guidance**.
 
-💡 **Our Innovation**  
+  **Our Innovation**  
 We integrate **Generative AI + Real-time Data + Skill Analysis** in a single platform with:  
 - Personalized survey-driven insights  
 - Career recommendations in **3 categories**: *Current Market, Local Opportunities, Future Roles*  
@@ -53,18 +53,18 @@ We carefully selected a **scalable, lightweight, and modern stack**:
 
 ### 🔹 Backend
 - <p> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" alt="Node.js"/></p>
-- 🤖 **Google Gemini 2.5 Pro** – Deep analysis (survey, skill gap, roadmap)  
-- ⚡ **Google Gemini 2.5 Flash** – Real-time chat & career Q&A  
+-  **Google Gemini 2.5 Pro** – Deep analysis (survey, skill gap, roadmap)  
+-  **Google Gemini 2.5 Flash** – Real-time chat & career Q&A  
 
 ### 🔹 Database & Auth
 - 🔥 **Firebase Firestore** – Real-time storage of survey answers, chats, roadmaps  
 - 🔑 **Firebase Auth** – Secure authentication  
 
 ### 🔹 Other Integrations
-- 📄 **JsPDF** – Client-side roadmap PDF generation  
-- ☁️ **Google Drive (fallback)** – PDF storage  
-- 🖼️ **Cloudinary** – Profile picture storage  
-- 🎤 **Web Speech API** – Voice-to-text in chat  
+-  **JsPDF** – Client-side roadmap PDF generation  
+-  **Google Drive (fallback)** – PDF storage  
+-  **Cloudinary** – Profile picture storage  
+-  **Web Speech API** – Voice-to-text in chat  
 
 ---
 
@@ -78,7 +78,7 @@ We carefully selected a **scalable, lightweight, and modern stack**:
 
 -  Skill Gap Analyzer with % match & missing skills
 
-- 🗺 AI Roadmap Generator (downloadable PDF)
+-  AI Roadmap Generator (downloadable PDF)
 
 -  Chat Window with persistent memory stored in Firestore
 
@@ -171,13 +171,13 @@ Built for Google Gen AI Exchange Hackathon 2025 with passion.
 
 ```mermaid
 flowchart TD
-    A[👩‍🎓 User Login] --> B[📝 Takes Career Survey]
-    B --> C[🤖 Gemini Pro: Analyze Profile]
-    C --> D[📊 AI Career Suggestions 3 Categories]
-    D --> E[✅ User Chooses Career Role]
-    E --> F[🔎 Gemini Pro: Skill Gap Analysis]
-    F --> G[🗺️ AI Roadmap Generated 10 Steps]
-    G --> H[📄 Roadmap PDF Created & Saved]
-    H --> I[📌 Dashboard: Goals, Skills, Roadmap]
-    I --> J[💬 Ongoing Chat with Gemini Flash]
-    J --> K[🎤 Voice Support + Persistent Memory]
+    A[User Login] --> B[Takes Career Survey]
+    B --> C[ Gemini Pro: Analyze Profile]
+    C --> D[ AI Career Suggestions 3 Categories]
+    D --> E[ User Chooses Career Role]
+    E --> F[ Gemini Pro: Skill Gap Analysis]
+    F --> G[ AI Roadmap Generated 10 Steps]
+    G --> H[ Roadmap PDF Created & Saved]
+    H --> I[ Dashboard: Goals, Skills, Roadmap]
+    I --> J[ Ongoing Chat with Gemini Flash]
+    J --> K[ Voice Support + Persistent Memory]
