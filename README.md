@@ -1,4 +1,7 @@
-# 🌸 VISCARIAASSIST
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Nisha-Mallick/ViscariaAssist/main/assets/logo.png" alt="ViscariaAssist Logo" width="120" height="120" style="border-radius:16px"/>
+</p>
+# VISCARIAASSIST
 
 > **Empowering Careers Through Seamless AI-Driven Guidance**  
 Your personalized AI Career & Skills Advisor built for students and professionals to navigate the evolving job market.
