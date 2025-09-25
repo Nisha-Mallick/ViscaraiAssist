@@ -21,7 +21,7 @@ Your personalized AI Career & Skills Advisor built for students and professional
 **ViscariaAssist** is a next-gen platform that bridges the gap between **student potential** and **industry expectations**.  
 It provides **personalized career guidance, skill-gap analysis, and AI-generated roadmaps** by leveraging **Google Gemini (Pro + Flash)** and **Firebase**.  
 
-No more generic career advice. Each user gets a **custom roadmap**, **actionable skills to learn**, and **real-world job role insights** — all saved in their dashboard for continuous growth.
+No more generic career advice. Each user gets a **custom roadmap**, **actionable skills to learn**, and **real-world job role insights** all saved in their dashboard for continuous growth.
 
 ---
 
@@ -53,12 +53,13 @@ We carefully selected a **scalable, lightweight, and modern stack**:
 
 ### 🔹 Backend
 - <p> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" alt="Node.js"/></p>
--  **Google Gemini 2.5 Pro** – Deep analysis (survey, skill gap, roadmap)  
--  **Google Gemini 2.5 Flash** – Real-time chat & career Q&A  
+- <p> <img src="https://w7.pngwing.com/pngs/212/722/png-transparent-web-development-express-js-javascript-software-framework-laravel-world-wide-web-purple-blue-text.png" alt="Expressjs" Weigth="26" height="25"/></p>
+- <p> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Google_Gemini_logo.svg/2560px-Google_Gemini_logo.svg.png" alt="Gemini2.5pro" Weigth="28" height="25"/>  <b>2.5 Pro</b> – Deep analysis (survey, skill gap, roadmap) </p> 
+- <p> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Google_Gemini_logo.svg/2560px-Google_Gemini_logo.svg.png" alt="GeminiFlash" Weigth="28" height="25"/>  <b> 2.5 Flash</b> – Real-time chat & career Q&A  </p>
 
 ### 🔹 Database & Auth
-- 🔥 **Firebase Firestore** – Real-time storage of survey answers, chats, roadmaps  
-- 🔑 **Firebase Auth** – Secure authentication  
+- <p> <img src="https://firebase.google.com/static/downloads/brand-guidelines/SVG/logo-standard.svg" alt="Firestore" Weigth="26" height="25"/> <b> Firestore</b> – Real-time storage of survey answers, chats, roadmaps </p> 
+- <p> <img src="https://firebase.google.com/static/downloads/brand-guidelines/SVG/logo-standard.svg" alt="Auth" Weigth="26" height="25"/> <b> Auth</b> – Secure authentication </p>   
 
 ### 🔹 Other Integrations
 -  **JsPDF** – Client-side roadmap PDF generation  
@@ -125,8 +126,15 @@ ViscariaAssist/
 # Clone the repository
 git clone https://github.com/<your-username>/ViscariaAssist
 
+# Make sure your System have Tailwindcss Installed
+npm i -D tailwindcss@3 postcss autoprefixer
+
 # Navigate into backend
 cd ViscariaAssist/backend
+
+# Make sure Node.js is Installed
+node --version
+npm --version
 
 # Install dependencies
 npm install
@@ -136,7 +144,14 @@ npm install
 # Start backend
 npm start
 
+# Now Navigate to frontend
+ cd..
+
 # Open frontend (with Live Server or Firebase Hosting)
+or
+
+# Run Frontend Locally
+npm run build:css
 ```
 ## 📖 Usage
 
