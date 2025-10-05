@@ -94,16 +94,37 @@ We carefully selected a **scalable, lightweight, and modern stack**:
 
 ```
 ViscariaAssist/
-├── frontend/
-│   ├── index.html
-│   ├── career-assist.js
-│   ├── take-test.js
-│   └── styles.css
+│
+├── .firebase/
+├── .github/
+│
 ├── backend/
-│   ├── server.js
-│   └── package.json
-├── firestore/
-│   └── users, surveys, chats collections
+│   ├── node_modules/
+│   ├── tmp_uploads/
+│   ├── .env
+│   ├── package-lock.json
+│   ├── package.json
+│   └── server.js
+│
+├── node_modules/
+│
+├── public/
+│   ├── assets/
+│   ├── css/
+│   ├── js/
+│   ├── 404.html
+│   ├── career-assist.html
+│   ├── dashboard.html
+│   ├── index.html
+│   ├── login.html
+│   └── take-test.html
+│
+├── .firebaserc
+├── .gitignore
+├── cors.json
+├── firebase.json
+├── package-lock.json
+└── package.json
 └── README.md
 ```
 
