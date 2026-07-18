@@ -2,7 +2,7 @@
 <table>
   <tr>
     <td>
-      <img src=https://github.com/Nisha-Mallick/ViscaraiAssist/blob/main/Clogo_image.png
+      <img src=assets/logo.png
            alt="ViscariaAssist Logo" width="70" height="70"/>
     </td>
     <td style="padding-left: 15px; vertical-align: middle;">
