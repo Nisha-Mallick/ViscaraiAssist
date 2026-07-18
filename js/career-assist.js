@@ -1,20 +1,9 @@
 // ---------- career-assist.js ---------
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  updateDoc,
-  collection,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit
-} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+import { authFetch } from './utils/authFetch.js';
+import { API_BASE } from './config/api.js';
 
 // ---------- Firebase config  ----------
 const firebaseConfig = {
@@ -27,25 +16,17 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 async function loadLastFlashMessages() {
   if (!currentUser || !currentUser.uid) return;
   try {
-    const messagesCol = collection(db, "flash_chats", currentUser.uid, "messages");
-    const q = query(messagesCol, orderBy("ts", "desc"), limit(25));  // Get latest 25 messages
-    const snaps = await getDocs(q);
-
-    const docs = [];
-    snaps.forEach(d => {
-      const dt = d.data() || {};
-      docs.push({ role: dt.role || "assistant", text: dt.text || "", ts: dt.ts || 0 });
-    });
-
-    const messages = docs.reverse(); 
-
-    // Append messages to chat UI
-    messages.forEach(m => {
+    const res = await authFetch(`${API_BASE}/chat/history?limit=25`);
+    if (!res.ok) return;
+    const docs = await res.json();
+    if (!Array.isArray(docs)) return;
+    
+    // docs is already chronological from the backend
+    docs.forEach(m => {
       if (m.role === 'user') appendBubble(m.text, true);
       else appendBotHTML(`<div class="text-sm">${escapeHtml(m.text).replace(/\*\*/g, '').replace(/\n/g, '<br/>')}</div>`);
     });
@@ -81,8 +62,8 @@ onAuthStateChanged(auth, async (user) => {
       console.warn("loadLastSurveyForUser failed:", e);
     }
   }
-    try {
-    await loadLastFlashMessages();  
+  try {
+    await loadLastFlashMessages();
   } catch (e) {
     console.warn("loadLastFlashMessages failed:", e);
   }
@@ -102,16 +83,16 @@ attachLoginButtons();
 
 function updateRoleButtonsState() {
   // Buttons should be enabled when NO role has been chosen for this survey.
-  const allowSelection = !surveyChosenRole; 
+  const allowSelection = !surveyChosenRole;
   document.querySelectorAll('.role-btn').forEach(btn => {
-   
+
     btn.title = "";
 
     if (allowSelection) {
       // enable button visually & functionally
       btn.removeAttribute('disabled');
-      btn.classList.remove('opacity-70','pointer-events-none','bg-[#f3e8e3]','text-[#a77a6a]','opacity-50','cursor-not-allowed');
-      btn.classList.add('bg-[#d3ab9e]','text-white');
+      btn.classList.remove('opacity-70', 'pointer-events-none', 'bg-[#f3e8e3]', 'text-[#a77a6a]', 'opacity-50', 'cursor-not-allowed');
+      btn.classList.add('bg-[#d3ab9e]', 'text-white');
       btn.setAttribute('aria-disabled', 'false');
 
       // attach click handler once which avoid duplicates
@@ -138,8 +119,8 @@ function updateRoleButtonsState() {
     } else {
       // disable button visually & functionally (because a role was chosen)
       btn.setAttribute('disabled', 'true');
-      btn.classList.add('opacity-70','pointer-events-none','bg-[#f3e8e3]','text-[#a77a6a]','opacity-50','cursor-not-allowed');
-      btn.classList.remove('bg-[#d3ab9e]','text-white');
+      btn.classList.add('opacity-70', 'pointer-events-none', 'bg-[#f3e8e3]', 'text-[#a77a6a]', 'opacity-50', 'cursor-not-allowed');
+      btn.classList.remove('bg-[#d3ab9e]', 'text-white');
       btn.setAttribute('aria-disabled', 'true');
     }
   });
@@ -148,7 +129,7 @@ function updateRoleButtonsState() {
 // ---------- Day-in-the-Life Simulation State ----------
 let simulationActive = false;
 let simulationRole = null;
-let simulationStage = null; 
+let simulationStage = null;
 // stages: "intro" | "await_confirmation" | "tasks"
 
 const sendBtn = document.getElementById('sendBtn');
@@ -159,7 +140,7 @@ const chatScroll = document.getElementById('chatScroll');
 const ASSISTANT_AVATAR = './assets/assistant-avatar.png';
 
 
-(function injectAssistantAvatarStyles(){
+(function injectAssistantAvatarStyles() {
   if (document.getElementById('assistant-avatar-styles')) return;
   const style = document.createElement('style');
   style.id = 'assistant-avatar-styles';
@@ -175,11 +156,11 @@ const ASSISTANT_AVATAR = './assets/assistant-avatar.png';
 })();
 
 // UI appenders 
-function appendBubble(text, me=false) {
+function appendBubble(text, me = false) {
   const wrap = document.createElement('div');
   wrap.className = 'relative bubble ' +
     (me ? 'me ml-auto bg-[#eac9c1] border border-[#d49382] text-white'
-        : 'bg-[#f7f0ec] border border-[#f3e8e3]') +
+      : 'bg-[#f7f0ec] border border-[#f3e8e3]') +
     ' max-w-[85%] rounded-2xl p-3 text-sm shadow-sm';
   wrap.textContent = text;
   chatScroll.appendChild(wrap);
@@ -201,7 +182,7 @@ function appendBotHTML(htmlContent, options = {}) {
       const img = document.createElement('img');
       img.src = ASSISTANT_AVATAR;
       img.alt = 'Assistant';
-      img.onerror = function(){
+      img.onerror = function () {
         avatarWrap.innerHTML = `<svg class="chat-assistant-placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
       };
       avatarWrap.appendChild(img);
@@ -222,7 +203,7 @@ function appendBotHTML(htmlContent, options = {}) {
     return wrapper;
   } else {
     const wrapper = document.createElement('div');
-    wrapper.className = 'relative'; 
+    wrapper.className = 'relative';
 
     const bubbleContainer = document.createElement('div');
     bubbleContainer.className = 'relative bubble bg-[#f7f0ec] border border-[#f3e8e3] rounded-2xl p-3 text-sm shadow-sm';
@@ -237,7 +218,7 @@ function appendBotHTML(htmlContent, options = {}) {
 }
 
 // ---------- Typing indicator ----------
-function showTypingIndicator(messages = ['......',' Generating response...', 'Finalizing...', 'Career Recommendation...'], intervalMs = 900) {
+function showTypingIndicator(messages = ['......', ' Generating response...', 'Finalizing...', 'Career Recommendation...'], intervalMs = 900) {
   const t = document.createElement('div');
   t.className = 'relative bubble bg-[#f7f0ec] border border-[#f3e8e3] max-w-[25%] rounded-2xl p-3 text-sm shadow-sm animate-pulse';
   const msgs = Array.isArray(messages) && messages.length > 0 ? messages : [String(messages)];
@@ -262,22 +243,22 @@ function removeNode(node) {
       clearInterval(Number(timer));
       delete node.dataset.timer;
     }
-  } catch (e) {}
+  } catch (e) { }
   if (node && node.parentNode) node.parentNode.removeChild(node);
 }
 
 // ---------- Survey data & UI logic ----------
 const surveyQuestions = [
-  { key: "work_environment", q: "Q1. Which type of work environment do you prefer?", suggestions: ["Corporate","Startup","Government","Freelancer"] },
-  { key: "subjects", q: "Q2. Which subjects/fields interest you most?", suggestions: ["Science","Arts","Tech","Business","Social Work"] },
-  { key: "strengths", q: "Q3. What are your top strengths?", suggestions: ["Leadership","Problem-Solving","Creativity","Tech Skills"] },
-  { key: "improvements", q: "Q4. Which skills do you want to improve?", suggestions: ["Communication","Time Management","Coding","Public Speaking"] },
-  { key: "skills", q: "Q5. What skills do you already have?", suggestions: ["Programming","Design","Writing","Teaching","Management"] },
-  { key: "experience", q: "Q6. Do you have career-related experience?", suggestions: ["Internship","Project","Work","None"] },
-  { key: "confidence", q: "Q7. Rate your confidence in your skills (1–10)", suggestions: ["1","2","3","4","5","6","7","8","9","10"] },
-  { key: "motivation", q: "Q8. What tasks motivate you most?", suggestions: ["Solving","Helping","Creating","Organizing"] },
+  { key: "work_environment", q: "Q1. Which type of work environment do you prefer?", suggestions: ["Corporate", "Startup", "Government", "Freelancer"] },
+  { key: "subjects", q: "Q2. Which subjects/fields interest you most?", suggestions: ["Science", "Arts", "Tech", "Business", "Social Work"] },
+  { key: "strengths", q: "Q3. What are your top strengths?", suggestions: ["Leadership", "Problem-Solving", "Creativity", "Tech Skills"] },
+  { key: "improvements", q: "Q4. Which skills do you want to improve?", suggestions: ["Communication", "Time Management", "Coding", "Public Speaking"] },
+  { key: "skills", q: "Q5. What skills do you already have?", suggestions: ["Programming", "Design", "Writing", "Teaching", "Management"] },
+  { key: "experience", q: "Q6. Do you have career-related experience?", suggestions: ["Internship", "Project", "Work", "None"] },
+  { key: "confidence", q: "Q7. Rate your confidence in your skills (1–10)", suggestions: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] },
+  { key: "motivation", q: "Q8. What tasks motivate you most?", suggestions: ["Solving", "Helping", "Creating", "Organizing"] },
   { key: "location", q: "Q9. Enter your current city/hometown (e.g., Mumbai, Delhi, Bangalore)", suggestions: [] },
-  { key: "learning", q: "Q10. How do you prefer learning new skills?", suggestions: ["Courses","Projects","Mentorship","Classroom"] },
+  { key: "learning", q: "Q10. How do you prefer learning new skills?", suggestions: ["Courses", "Projects", "Mentorship", "Classroom"] },
   { key: "resume_or_link", q: "Q11. If you have a resume/CV or GitHub/LinkedIn link paste it here (or type NA)", suggestions: [] }
 ];
 
@@ -285,8 +266,8 @@ let surveyIndex = 0;
 let surveyAnswers = {};
 let surveyActive = false;
 let lastBotBubble = null;
-let surveyDocRef = null;   
-let persistedSurveyBubble = null; 
+let surveyDocRef = null;
+let persistedSurveyBubble = null;
 let surveyStage = null;
 let surveyChosenRole = null;
 
@@ -326,8 +307,10 @@ async function saveAnswerToFirestore(key, value) {
     if (!surveyDocRef) return;
     const updates = {};
     updates[`answers.${key}`] = value;
-    updates['updatedAt'] = new Date();
-    await updateDoc(surveyDocRef, updates);
+    await authFetch(`${API_BASE}/survey`, {
+      method: 'PUT',
+      body: JSON.stringify(updates)
+    });
   } catch (err) {
     console.warn("Firestore save error:", err);
   }
@@ -354,20 +337,16 @@ async function handleAnswer(answerText) {
 async function createSurveyDoc() {
   try {
     if (!currentUser) return;
-    const docRef = doc(db, "surveys", currentUser.uid);
-    const payload = {
-      createdAt: new Date(),
-      ownerUid: currentUser.uid,
-      answers: {},
-      stage: "in_progress",
-      updatedAt: new Date()
-    };
-    await setDoc(docRef, payload, { merge: true });
-    surveyDocRef = docRef;
-    surveyStage = "in_progress";
-    surveyChosenRole = null;
-    surveyAnswers.chosenRole = "";
-    updateRoleButtonsState();
+    const res = await authFetch(`${API_BASE}/survey`, {
+      method: 'POST'
+    });
+    if (res.ok) {
+      surveyDocRef = true;
+      surveyStage = "in_progress";
+      surveyChosenRole = null;
+      surveyAnswers.chosenRole = "";
+      updateRoleButtonsState();
+    }
   } catch (err) {
     console.error("Error creating survey doc:", err);
     surveyDocRef = null;
@@ -380,30 +359,15 @@ async function createSurveyDoc() {
 async function loadLastSurveyForUser() {
   if (!currentUser) return;
   try {
-    // Try the UID-keyed doc first
-    const docRefByUid = doc(db, "surveys", currentUser.uid);
-    const snap = await getDoc(docRefByUid);
+    const res = await authFetch(`${API_BASE}/survey/last`);
     let surveyData = null;
 
-    if (snap.exists()) {
-      surveyDocRef = docRefByUid;
-      surveyData = snap.data();
-      surveyStage = surveyData.stage || null;        
+    if (res.ok) {
+      surveyDocRef = true;
+      surveyData = await res.json();
+      surveyStage = surveyData.stage || null;
       surveyChosenRole = surveyData.chosenRole || null;
       updateRoleButtonsState();
-    } else {
-      // Fallback: query by ownerUid, order by createdAt desc, limit 1
-      const col = collection(db, "surveys");
-      const q = query(col, where("ownerUid", "==", currentUser.uid), orderBy("createdAt", "desc"), limit(1));
-      const snaps = await getDocs(q);
-      if (!snaps.empty) {
-        const first = snaps.docs[0];
-        surveyDocRef = doc(db, "surveys", first.id);
-        surveyData = first.data();
-        surveyStage = surveyData.stage || null;      
-        surveyChosenRole = surveyData.chosenRole || null;
-        updateRoleButtonsState();
-      }
     }
 
     if (!surveyData) {
@@ -418,7 +382,7 @@ async function loadLastSurveyForUser() {
     // Render a persistent "survey summary" bubble in the chat window 
     renderPersistedSurveyBubble(surveyAnswers);
 
-        // show the "Retake" UI since a previous survey exists
+    // show the "Retake" UI since a previous survey exists
     try {
       renderIntroRetake();
     } catch (e) { /* ignore */ }
@@ -440,25 +404,26 @@ async function loadLastSurveyForUser() {
       } catch (e) { console.warn("renderSkillGap from persisted data failed:", e); }
     }
     if (surveyData.roadmap_text) {
-  try {
-    const sanitized = sanitizeRoadmapText(String(surveyData.roadmap_text));
-    renderRoadmapPanel(sanitized);
-    // create pdf link 
-    await createRoadmapPDF(sanitized, surveyData.chosenRole || "");
+      try {
+        const sanitized = sanitizeRoadmapText(String(surveyData.roadmap_text));
+        renderRoadmapPanel(sanitized);
+        // create pdf link 
+        await createRoadmapPDF(sanitized, surveyData.chosenRole || "");
 
-    // ensure users doc contains roadmap_text / chosenRole for Dashboard
-    try {
-      if (currentUser) {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userDocRef, {
-          goals: surveyData.chosenRole || "",
-          roadmap_text: sanitized,
-          updatedAt: new Date()
-          }, { merge: true });
-        }
-      } catch (e) { /* ignore */ }
-    } catch (e) { console.warn("renderRoadmapPanel/createRoadmapPDF failed:", e); }
-  }
+        // ensure users doc contains roadmap_text / chosenRole for Dashboard
+        try {
+          if (currentUser) {
+            await authFetch(`${API_BASE}/career/roadmap`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                goals: surveyData.chosenRole || "",
+                roadmap_text: sanitized
+              })
+            });
+          }
+        } catch (e) { /* ignore */ }
+      } catch (e) { console.warn("renderRoadmapPanel/createRoadmapPDF failed:", e); }
+    }
   } catch (err) {
     console.warn("loadLastSurveyForUser error:", err);
   }
@@ -494,7 +459,7 @@ function renderPersistedSurveyBubble(answers) {
 
 // ---------- FRONTEND PROMPT BUILDING & BACKEND CALLS ----------
 function buildSuggestionsPrompt(answers) {
-  const compact = Object.entries(answers).map(([k,v]) => `${k}:${v}`).join(" | ");
+  const compact = Object.entries(answers).map(([k, v]) => `${k}:${v}`).join(" | ");
   return `Analyze the following user profile and provide career role recommendations aligned with their chosen career goal.  
 Organize results into exactly three categories:  
 1. Current Job Market  
@@ -516,7 +481,7 @@ User Profile: ${compact}`;
 
 function buildSkillGapPromptForRole(answers, role) {
   const resume = (answers.resume_or_link || "").trim();
-  const compact = Object.entries(answers).filter(([k]) => k !== 'resume_or_link').map(([k,v]) => `${k}:${v}`).join(" | ");
+  const compact = Object.entries(answers).filter(([k]) => k !== 'resume_or_link').map(([k, v]) => `${k}:${v}`).join(" | ");
   let prompt = `You are a concise career skill-gap analyst. Given the user's profile: ${compact}.\n\n`;
   prompt += `Target role: ${role}\n\n`;
   if (resume && resume.toLowerCase() !== 'na') {
@@ -532,12 +497,12 @@ function buildSkillGapPromptForRole(answers, role) {
 - skillsToLearn: list 3 to 5 concrete skills the user should learn to reach the target role.
 - matchPercent: integer 0-100 representing how close the user is to the chosen goal (higher = closer).
 Keep the JSON compact and valid. If you cannot determine a percent, estimate and provide a number.
-Also include (after the JSON) 1-2 short plain sentences to explain the top 2 skills to learn (max 2 lines). Prefer the JSON first.`; 
+Also include (after the JSON) 1-2 short plain sentences to explain the top 2 skills to learn (max 2 lines). Prefer the JSON first.`;
   return prompt;
 }
 
 function buildRoadmapPrompt(answers, role) {
-  const compact = Object.entries(answers).map(([k,v]) => `${k}:${v}`).join(" | ");
+  const compact = Object.entries(answers).map(([k, v]) => `${k}:${v}`).join(" | ");
   return `User profile: ${compact}  
 Career goal: ${role}  
 
@@ -661,9 +626,7 @@ End with:
 `;
 }
 
-
-
-const BACKEND_BASE = "https://career-backend-production.up.railway.app";   // <-- make sure your backend runs on 3000
+const BACKEND_BASE = "https://viscaraiassist-backend.onrender.com";   // <-- make sure your backend runs on 3000
 
 async function callBackendWithPrompt(prompt, extra = {}) {
   const url = `${BACKEND_BASE}/api/groq`; // absolute
@@ -694,16 +657,16 @@ async function callBackendWithPrompt(prompt, extra = {}) {
         body: JSON.stringify(body)
       });
 
-      
+
       if (resp.ok) {
-        const json = await resp.json().catch(()=>null);
+        const json = await resp.json().catch(() => null);
         if (json && typeof json.reply === "string") return json.reply;
         if (json?.candidates?.[0]?.content?.parts?.[0]?.text) return json.candidates[0].content.parts[0].text;
         return JSON.stringify(json);
       }
 
       // Not OK: read text for diagnosis
-      const text = await resp.text().catch(()=>"(no body)");
+      const text = await resp.text().catch(() => "(no body)");
       console.error("Backend responded", resp.status, text);
 
       // If server returned a transient server error, show busy bubble on first attempt and retry
@@ -740,7 +703,7 @@ async function callBackendWithPrompt(prompt, extra = {}) {
       await new Promise(r => setTimeout(r, retryDelayMs));
       continue;
     } finally {
-      
+
     }
   }
 
@@ -765,35 +728,32 @@ async function callFlashChat(userMessage) {
     let hist = [];
     try {
       if (currentUser && currentUser.uid) {
-        // Query latest 24 messages (desc), then reverse for chronological order
-        const messagesCol = collection(db, "flash_chats", currentUser.uid, "messages");
-        const q = query(messagesCol, orderBy("ts", "desc"), limit(24));
-        const snaps = await getDocs(q);
-        const docs = [];
-        snaps.forEach(d => {
-          const dt = d.data() || {};
-          docs.push({ role: dt.role || "assistant", text: dt.text || "", ts: dt.ts || 0 });
-        });
-        hist = docs.reverse(); 
+        const res = await authFetch(`${API_BASE}/chat/history?limit=24`);
+        if (res.ok) {
+          const docs = await res.json();
+          hist = Array.isArray(docs) ? docs : [];
+        } else {
+          hist = [];
+        }
       } else {
         // fallback to localStorage method
         hist = loadFlashHistory();
       }
     } catch (e) {
       console.warn("Failed to load history from Firestore, falling back to localStorage:", e);
-      try { hist = loadFlashHistory(); } catch(_) { hist = []; }
+      try { hist = loadFlashHistory(); } catch (_) { hist = []; }
     }
 
     hist.push({ role: 'user', text: userMessage, ts: Date.now() });
 
-    const typing = showTypingIndicator(['Thinking...','Preparing quick tips...'], 900);
+    const typing = showTypingIndicator(['Thinking...', 'Preparing quick tips...'], 900);
 
     // Build a compact prompt from the last few turns (use last 6 turns => ~12 messages)
     const MAX_TURNS = 6;
-    const last = hist.slice(-MAX_TURNS * 2); 
-    const system =  `System: You are a friendly, concise, expert career consultant for students in India. ` +
-                    `Respond in short, helpful, and professional sentences (max 80–100 words). Use bullet points only if necessary. ` +
-                    `If a question asks for steps, give 3 quick steps. Avoid long paragraphs. Keep tone encouraging , friendly and 
+    const last = hist.slice(-MAX_TURNS * 2);
+    const system = `System: You are a friendly, concise, expert career consultant for students in India. ` +
+      `Respond in short, helpful, and professional sentences (max 80–100 words). Use bullet points only if necessary. ` +
+      `If a question asks for steps, give 3 quick steps. Avoid long paragraphs. Keep tone encouraging , friendly and 
                      practical to the users based on their questions.`
     let promptBody = system + "\n\nDialogue:\n";
     for (const m of last) {
@@ -819,24 +779,17 @@ async function callFlashChat(userMessage) {
     // Persist both user message and assistant reply to Firestore 
     try {
       if (currentUser && currentUser.uid) {
-        const uid = currentUser.uid;
-        // Create deterministic-ish doc ids to avoid collisions
         const tsNow = Date.now();
-        const userMsgId = `${tsNow}-u-${Math.random().toString(36).slice(2,8)}`;
-        const botMsgId  = `${tsNow + 1}-b-${Math.random().toString(36).slice(2,8)}`;
-
-        // set user message doc
-        await setDoc(doc(db, "flash_chats", uid, "messages", userMsgId), {
-          role: "user",
-          text: userMessage,
-          ts: tsNow
+        // save user message
+        await authFetch(`${API_BASE}/chat/message`, {
+          method: 'POST',
+          body: JSON.stringify({ role: "user", text: userMessage, ts: tsNow })
         });
 
-        // set assistant message doc
-        await setDoc(doc(db, "flash_chats", uid, "messages", botMsgId), {
-          role: "assistant",
-          text: assistantText,
-          ts: tsNow + 1
+        // save assistant message
+        await authFetch(`${API_BASE}/chat/message`, {
+          method: 'POST',
+          body: JSON.stringify({ role: "assistant", text: assistantText, ts: tsNow + 1 })
         });
 
 
@@ -865,8 +818,8 @@ async function callFlashChat(userMessage) {
 // ---------- Stage 1: suggestions ----------
 async function getCareerSuggestions() {
   const typing = showTypingIndicator([
-    '...... ',' Generating response',
-    'Finalizing....',' Career Recommendation...'
+    '...... ', ' Generating response',
+    'Finalizing....', ' Career Recommendation...'
   ], 1100);
 
   try {
@@ -875,13 +828,13 @@ async function getCareerSuggestions() {
       // Ask server to fetch GitHub summary (server returns resumeSummary/ghSummary but not suggestions)
       const resp = await fetch(`${BACKEND_BASE}/api/uploadResume`, {
         method: 'POST',
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: surveyAnswers })
       });
 
       if (!resp.ok) {
         removeNode(typing);
-        const t = await resp.text().catch(()=>"(no body)");
+        const t = await resp.text().catch(() => "(no body)");
         console.error("uploadResume (url) error:", resp.status, t);
         appendBubble("Sorry — couldn't fetch profile from the link. Please paste profile text or upload resume.", false);
         const prompt = buildSuggestionsPrompt(surveyAnswers);
@@ -898,10 +851,13 @@ async function getCareerSuggestions() {
         surveyAnswers.resumeSummary = j.resumeSummary;
         if (surveyDocRef) {
           try {
-            await updateDoc(surveyDocRef, { resumeSummary: j.resumeSummary, updatedAt: new Date(), stage: "suggestions_sent", ai_suggestions: "" }, { merge: true });
+            await authFetch(`${API_BASE}/survey`, {
+              method: 'PUT',
+              body: JSON.stringify({ resumeSummary: j.resumeSummary, stage: "suggestions_sent", ai_suggestions: "" })
+            });
             surveyStage = "suggestions_sent";
             updateRoleButtonsState();
-          } catch(e) { /* ignore */ }
+          } catch (e) { /* ignore */ }
         }
       }
 
@@ -912,10 +868,13 @@ async function getCareerSuggestions() {
       // persist AI suggestions into survey doc
       if (surveyDocRef) {
         try {
-          await updateDoc(surveyDocRef, { ai_suggestions: reply, updatedAt: new Date(), stage: "suggestions_sent" });
+          await authFetch(`${API_BASE}/survey`, {
+            method: 'PUT',
+            body: JSON.stringify({ ai_suggestions: reply, stage: "suggestions_sent" })
+          });
           surveyStage = "suggestions_sent";
           updateRoleButtonsState();
-        } catch(e) { /* ignore */ }
+        } catch (e) { /* ignore */ }
       }
 
       renderSuggestionsAccordion(reply);
@@ -929,10 +888,13 @@ async function getCareerSuggestions() {
 
     if (surveyDocRef) {
       try {
-        await updateDoc(surveyDocRef, { stage: "suggestions_sent", ai_suggestions: reply, updatedAt: new Date() });
+        await authFetch(`${API_BASE}/survey`, {
+          method: 'PUT',
+          body: JSON.stringify({ stage: "suggestions_sent", ai_suggestions: reply })
+        });
         surveyStage = "suggestions_sent";
         updateRoleButtonsState();
-      } catch(e) { /* ignore */ }
+      } catch (e) { /* ignore */ }
     }
 
     renderSuggestionsAccordion(reply);
@@ -950,7 +912,7 @@ async function analyzeSkillGapForRole(role) {
     const resumeVal = (surveyAnswers.resume_or_link || "").trim();
     let reply = null;
     const typing = showTypingIndicator([
-      '......','Analyzing resume/profile...',
+      '......', 'Analyzing resume/profile...',
       'Running skill-gap analysis...'
     ], 1100);
 
@@ -963,7 +925,7 @@ async function analyzeSkillGapForRole(role) {
           body: JSON.stringify(payload)
         });
         if (!resp.ok) {
-          const t = await resp.text().catch(()=>"(no body)");
+          const t = await resp.text().catch(() => "(no body)");
           console.error("skillGap backend error:", resp.status, t);
           reply = await callBackendWithPrompt(buildSkillGapPromptForRole(surveyAnswers, role));
         } else {
@@ -989,8 +951,8 @@ async function analyzeSkillGapForRole(role) {
       parsed = fallbackParseSkillGap(String(reply || ""));
     }
 
-    const currentSkills = Array.isArray(parsed?.currentSkills) ? parsed.currentSkills : (parsed.currentSkills ? String(parsed.currentSkills).split(',').map(s=>s.trim()) : []);
-    const skillsToLearn = Array.isArray(parsed?.skillsToLearn) ? parsed.skillsToLearn : (parsed.skillsToLearn ? String(parsed.skillsToLearn).split(',').map(s=>s.trim()) : []);
+    const currentSkills = Array.isArray(parsed?.currentSkills) ? parsed.currentSkills : (parsed.currentSkills ? String(parsed.currentSkills).split(',').map(s => s.trim()) : []);
+    const skillsToLearn = Array.isArray(parsed?.skillsToLearn) ? parsed.skillsToLearn : (parsed.skillsToLearn ? String(parsed.skillsToLearn).split(',').map(s => s.trim()) : []);
     let matchPercent = parseInt(parsed?.matchPercent || parsed?.match || 0, 10);
     if (Number.isNaN(matchPercent)) matchPercent = 0;
     if (!matchPercent) matchPercent = heuristicMatchPercent(currentSkills, skillsToLearn);
@@ -1007,28 +969,30 @@ async function analyzeSkillGapForRole(role) {
 
     if (surveyDocRef) {
       try {
-        await updateDoc(surveyDocRef, { skill_gap: { currentSkills, skillsToLearn, matchPercent, goal: role }, updatedAt: new Date() });
+        await authFetch(`${API_BASE}/survey`, {
+          method: 'PUT',
+          body: JSON.stringify({ skill_gap: { currentSkills, skillsToLearn, matchPercent, goal: role } })
+        });
         surveyStage = "skill_gap_analyzed";
         updateRoleButtonsState();
-      } catch(e) { /* ignore */ }
+      } catch (e) { /* ignore */ }
     }
 
     // update users doc so Dashboard can show the latest skill gap and current skills
     try {
       if (currentUser) {
-        const userDocRef = doc(db, "users", currentUser.uid);
         const userPayload = {};
-        if (surveyData.chosenRole) userPayload.goals = surveyData.chosenRole;
-        if (surveyData.skill_gap && surveyData.skill_gap.currentSkills) userPayload.skills = surveyData.skill_gap.currentSkills;
+        if (role) userPayload.goals = role;
+        if (currentSkills && currentSkills.length) userPayload.skills = currentSkills;
         if (surveyAnswers && surveyAnswers.strengths) {
           userPayload.strengths = Array.isArray(surveyAnswers.strengths) ? surveyAnswers.strengths : [surveyAnswers.strengths];
         }
-        if (surveyData.skill_gap) userPayload.skill_gap = surveyData.skill_gap;
-        if (surveyData.roadmap_text) userPayload.roadmap_text = sanitizeRoadmapText(String(surveyData.roadmap_text));
-        if (Object.keys(userPayload).length) {
-          userPayload.updatedAt = new Date();
-          await updateDoc(userDocRef, userPayload, { merge: true });
-        }
+        userPayload.skill_gap = { currentSkills, skillsToLearn, matchPercent, goal: role };
+        
+        await authFetch(`${API_BASE}/user/profile`, {
+          method: 'PUT',
+          body: JSON.stringify(userPayload)
+        });
       }
     } catch (e) {
       console.warn("Could not update users doc with skill_gap:", e);
@@ -1049,10 +1013,10 @@ function fallbackParseSkillGap(text) {
     const curMatch = text.match(/current\s*skills[:\-–]\s*([^\n]+)/i);
     const learnMatch = text.match(/skills\s*(to\s*be\s*learned|to learn|to be learned)[:\-–]\s*([^\n]+)/i);
     const percentMatch = text.match(/(\d{1,3})\s*%/);
-    if (curMatch) out.currentSkills = curMatch[1].split(/[,;\/]/).map(s=>s.trim()).filter(Boolean);
-    if (learnMatch) out.skillsToLearn = learnMatch[2].split(/[,;\/]/).map(s=>s.trim()).filter(Boolean);
-    if (percentMatch) out.matchPercent = parseInt(percentMatch[1],10);
-  } catch(e){}
+    if (curMatch) out.currentSkills = curMatch[1].split(/[,;\/]/).map(s => s.trim()).filter(Boolean);
+    if (learnMatch) out.skillsToLearn = learnMatch[2].split(/[,;\/]/).map(s => s.trim()).filter(Boolean);
+    if (percentMatch) out.matchPercent = parseInt(percentMatch[1], 10);
+  } catch (e) { }
   return out;
 }
 
@@ -1067,19 +1031,19 @@ function sanitizeRoadmapText(raw) {
 
   s = s.replace(/<((https?:\/\/)[^>]+)>/gi, '$1');
 
-  s = s.replace(/[\u2013\u2014]/g, '-'); 
-  s = s.replace(/\u2022/g, '-');         
+  s = s.replace(/[\u2013\u2014]/g, '-');
+  s = s.replace(/\u2022/g, '-');
   s = s.replace(/[\u2028\u2029]/g, '\n');
 
   s = s.replace(/[\u2018\u2019\u201A\u201B]/g, "'");
   s = s.replace(/[\u201C\u201D\u201E\u201F]/g, '"');
 
-  s = s.replace(/(\*\*|__)(.*?)\1/g, '$2');   
-  s = s.replace(/(\*|_)(.*?)\1/g, '$2');     
+  s = s.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  s = s.replace(/(\*|_)(.*?)\1/g, '$2');
 
   s = s.replace(/\*{1,}/g, '');
 
-  s = s.split('\n').map(l => l.replace(/\s+$/,'')).join('\n');
+  s = s.split('\n').map(l => l.replace(/\s+$/, '')).join('\n');
 
   // Keep printable ASCII and common punctuation (avoid breaking jsPDF)
   s = s.replace(/[^\t\n\r\x20-\x7E\u00A0-\u00FF]/g, '');
@@ -1091,7 +1055,7 @@ function heuristicMatchPercent(current, toLearn) {
   if (!current || !Array.isArray(current)) current = [];
   if (!toLearn || !Array.isArray(toLearn)) toLearn = [];
   if (toLearn.length === 0) return 80;
-  const curLower = current.map(s=>s.toLowerCase());
+  const curLower = current.map(s => s.toLowerCase());
   const matches = toLearn.filter(s => curLower.includes(s.toLowerCase())).length;
   const total = current.length + toLearn.length;
   if (total === 0) return 50;
@@ -1099,8 +1063,8 @@ function heuristicMatchPercent(current, toLearn) {
   return Math.max(10, Math.min(95, percent));
 }
 
-function formatSkillGapChat({ currentSkills=[], skillsToLearn=[], matchPercent=0, goal="" }) {
-  const topLearn = skillsToLearn.slice(0,3).join(", ") || "No clear missing skills identified.";
+function formatSkillGapChat({ currentSkills = [], skillsToLearn = [], matchPercent = 0, goal = "" }) {
+  const topLearn = skillsToLearn.slice(0, 3).join(", ") || "No clear missing skills identified.";
   const line1 = `Skill gap for ${goal} — Key skills to learn: ${topLearn}.`;
   const line2 = `Estimated fit: ${matchPercent}% match. Focus on the top 2 skills to close the gap quickly.`;
   return `${line1}\n${line2}`;
@@ -1133,7 +1097,7 @@ function renderSkillGap({ currentSkills = [], skillsToLearn = [], matchPercent =
             <svg viewBox="0 0 36 36" class="absolute inset-0 h-14 w-14">
               <path d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32" fill="none" stroke="#f3e8e3" stroke-width="4" />
               <circle cx="18" cy="18" r="14" fill="none" stroke="#eac9c1" stroke-width="4"
-                stroke-dasharray="${(percent/100)*88}, 88" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
+                stroke-dasharray="${(percent / 100) * 88}, 88" stroke-linecap="round" transform="rotate(-90 18 18)"></circle>
             </svg>
             <div style="z-index:2;position:relative;text-align:center;">
               <div style="font-size:12px;color:#c36b5a;font-weight:700">${percent}%</div>
@@ -1161,14 +1125,17 @@ function renderSkillGap({ currentSkills = [], skillsToLearn = [], matchPercent =
 // ---------- Roadmap flow -------------
 async function requestRoadmapForRole(role) {
   appendBubble(role, true);
-    if (surveyDocRef) {
+  if (surveyDocRef) {
     try {
       // persist user's chosen role
-      await updateDoc(surveyDocRef, { chosenRole: role, updatedAt: new Date() });
-      surveyChosenRole = role;          
+      await authFetch(`${API_BASE}/survey`, {
+        method: 'PUT',
+        body: JSON.stringify({ chosenRole: role })
+      });
+      surveyChosenRole = role;
       surveyAnswers.chosenRole = role;
-      updateRoleButtonsState();        
-    } catch(e){
+      updateRoleButtonsState();
+    } catch (e) {
       console.warn("Could not persist chosenRole to Firestore:", e);
       surveyChosenRole = role;
       updateRoleButtonsState();
@@ -1193,21 +1160,25 @@ async function requestRoadmapForRole(role) {
 
     if (surveyDocRef) {
       try {
-        await updateDoc(surveyDocRef, { roadmap_text: sanitizedRoadmap, stage: "roadmap_generated", updatedAt: new Date() });
+        await authFetch(`${API_BASE}/survey`, {
+          method: 'PUT',
+          body: JSON.stringify({ roadmap_text: sanitizedRoadmap, stage: "roadmap_generated" })
+        });
         surveyStage = "roadmap_generated";
         updateRoleButtonsState();
-      } catch(e) { /* ignore */ }
+      } catch (e) { /* ignore */ }
     }
 
     // Push roadmap + chosenRole into the users doc so that Dashboard can pick it up
     try {
       if (currentUser) {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userDocRef, {
-          goals: role || "",
-          roadmap_text: sanitizedRoadmap,
-          updatedAt: new Date()
-        }, { merge: true });
+        await authFetch(`${API_BASE}/user/profile`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            goals: role || "",
+            roadmap_text: sanitizedRoadmap
+          })
+        });
       }
     } catch (e) {
       console.warn("Could not update users doc with roadmap:", e);
@@ -1230,6 +1201,7 @@ function renderRoadmapPanel(text) {
 
   const targetContainer = roadmapEmpty || roadmapList;
   if (!targetContainer) return;
+
   if (roadmapList) {
     roadmapList.innerHTML = '';
     roadmapList.classList.add('hidden');
@@ -1241,17 +1213,9 @@ function renderRoadmapPanel(text) {
   let pdfArea = targetContainer.parentNode.querySelector('.roadmap-pdf-area');
   if (!pdfArea) {
     pdfArea = document.createElement('div');
-    pdfArea.className = 'roadmap-pdf-area';
-    pdfArea.style.padding = '1rem';
-    pdfArea.style.background = 'transparent';
-    pdfArea.style.borderTop = '1px solid #f3e8e3';
-    pdfArea.style.marginTop = '0.75rem';
-    pdfArea.style.borderRadius = '0 0 0.5rem 0.5rem';
+    pdfArea.className = 'roadmap-pdf-area mt-3 p-4 bg-transparent border-t border-[#f3e8e3] rounded-b-lg';
     targetContainer.parentNode.appendChild(pdfArea);
-  } else {
-    pdfArea.innerHTML = '';
   }
-
   pdfArea.innerHTML = `
     <div class="font-medium text-sm">Your roadmap is generated in a downloadable link below</div>
     <div id="roadmapPdfLink" class="mt-2 rounded-lg"></div>
@@ -1270,7 +1234,7 @@ function clearRoadmapPdfArea() {
   if (pdfArea) {
     const linkDiv = pdfArea.querySelector('#roadmapPdfLink');
     if (linkDiv && linkDiv.dataset && linkDiv.dataset.blobUrl) {
-      try { URL.revokeObjectURL(linkDiv.dataset.blobUrl); } catch(e){/*ignore*/}
+      try { URL.revokeObjectURL(linkDiv.dataset.blobUrl); } catch (e) {/*ignore*/ }
     }
     pdfArea.remove();
   }
@@ -1315,16 +1279,16 @@ async function createRoadmapPDF(text, role = '') {
     // Basic normalize: replace long dashes and bullets with ASCII equivalents, strip non-ASCII
     let normalized = String(text || '');
     normalized = normalized.replace(/\r/g, '')
-                           .replace(/[\u2013\u2014]/g, '-')   
-                           .replace(/\u2022/g, '-')          
-                           .replace(/[\u2018\u2019]/g, "'")    
-                           .replace(/[\u201C\u201D]/g, '"')    
-                           
-     normalized = normalized.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, (m, label, url) => {
-     return `${label} — ${url}`;
-       });                      
-     normalized = normalized.replace(/\*{1,3}/g, '');
-     normalized = normalized.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, ''); 
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/\u2022/g, '-')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+
+    normalized = normalized.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, (m, label, url) => {
+      return `${label} — ${url}`;
+    });
+    normalized = normalized.replace(/\*{1,3}/g, '');
+    normalized = normalized.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
 
     const title = safeRole ? `Personal Roadmap for ${safeRole}` : "Personal Roadmap for Shaping your future";
 
@@ -1356,7 +1320,7 @@ async function createRoadmapPDF(text, role = '') {
     }
 
     y += 18;
-    try { doc.setDrawColor(211, 171, 158); doc.setLineWidth(0.8); } catch(e){}
+    try { doc.setDrawColor(211, 171, 158); doc.setLineWidth(0.8); } catch (e) { }
     doc.line(marginLeft, y, pageWidth - marginRight, y);
     y += 18;
 
@@ -1372,7 +1336,7 @@ async function createRoadmapPDF(text, role = '') {
         else prelude.push('');
         continue;
       }
-      const headerMatch = line.match(/^Step\s*(\d+)\s*[-:]\s*(.+)$/i);
+      const headerMatch = line.match(/^(?:#+\s*)?(?:Step\s*)?(\d+)\s*[.\-—–:]\s*(.+)$/i);
       if (headerMatch) {
         if (current) steps.push(current);
         current = { num: Number(headerMatch[1]), title: headerMatch[2].trim(), body: [] };
@@ -1392,8 +1356,9 @@ async function createRoadmapPDF(text, role = '') {
       }
     }
 
-    if (prelude.length) {
-      try { doc.setFont('helvetica', 'normal'); } catch(e){}
+    // Only print prelude if we successfully parsed steps, to avoid duplicating everything
+    if (prelude.length && steps.length > 0) {
+      try { doc.setFont('helvetica', 'normal'); } catch (e) { }
       doc.setFontSize(11);
       const preText = prelude.join(' ').trim();
       if (preText) {
@@ -1405,7 +1370,7 @@ async function createRoadmapPDF(text, role = '') {
     }
 
     for (const s of steps) {
-      try { doc.setFont('helvetica', 'bold'); } catch(e){}
+      try { doc.setFont('helvetica', 'bold'); } catch (e) { }
       doc.setFontSize(13);
       const stepHeading = `Step ${s.num} — ${s.title}`;
       const headingWrapped = doc.splitTextToSize(stepHeading, contentWidth);
@@ -1415,7 +1380,7 @@ async function createRoadmapPDF(text, role = '') {
 
       // Step body
       if (s.body && s.body.length) {
-        try { doc.setFont('helvetica', 'normal'); } catch(e){}
+        try { doc.setFont('helvetica', 'normal'); } catch (e) { }
         doc.setFontSize(11);
         for (let bodyLine of s.body) {
           if (!bodyLine.trim()) { y += 6; continue; }
@@ -1442,7 +1407,7 @@ async function createRoadmapPDF(text, role = '') {
 
     // Fallback: if no steps found, render the entire normalized text in plain style
     if (steps.length === 0) {
-      try { doc.setFont('helvetica', 'normal'); } catch(e){}
+      try { doc.setFont('helvetica', 'normal'); } catch (e) { }
       doc.setFontSize(11);
       const wrapped = doc.splitTextToSize(normalized, contentWidth);
       ensureSpace(wrapped.length * lineHeight + 6);
@@ -1485,8 +1450,8 @@ async function createRoadmapPDF(text, role = '') {
 // ---------- helper escapeHtml ----------
 function escapeHtml(str) {
   if (typeof str !== 'string') return '';
-  return str.replace(/[&<>"']/g, function(m) {
-    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+  return str.replace(/[&<>"']/g, function (m) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
   });
 }
 
@@ -1502,121 +1467,121 @@ sendBtn?.addEventListener('click', async () => {
   }
 
   // ---------- Simulation Chat Intercept ----------
-// ---------- Simulation Chat Intercept ----------
-if (simulationActive) {
-  const msg = v.toLowerCase();
+  // ---------- Simulation Chat Intercept ----------
+  if (simulationActive) {
+    const msg = v.toLowerCase();
+    composer.value = '';
+
+    // 1️⃣ User agrees after orientation
+    if (
+      simulationStage === "await_confirmation" &&
+      (msg.includes("yes") || msg.includes("continue"))
+    ) {
+      simulationStage = "morning_tasks";
+      appendBubble("Yes, continue with this role.", true);
+
+      const typing = showTypingIndicator(
+        ['Preparing morning workflow...', 'Assigning real tasks...'],
+        1000
+      );
+
+      try {
+        const reply = await callBackendWithPrompt(
+          buildMorningTaskPrompt(simulationRole)
+        );
+        removeNode(typing);
+
+        appendBotHTML(
+          `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
+        );
+
+        simulationStage = "await_morning_done";
+        return;
+      } catch (e) {
+        removeNode(typing);
+        appendBotHTML(`<div class="text-sm text-red-600">Failed to generate morning tasks.</div>`);
+        return;
+      }
+    }
+
+    // 2️⃣ Morning tasks completed
+    if (
+      simulationStage === "await_morning_done" &&
+      msg.includes("done")
+    ) {
+      simulationStage = "afternoon_tasks";
+      appendBubble("DONE", true);
+
+      const typing = showTypingIndicator(
+        ['Preparing afternoon tasks...', 'Continuing workday...'],
+        1000
+      );
+
+      try {
+        const reply = await callBackendWithPrompt(
+          buildAfternoonTaskPrompt(simulationRole)
+        );
+        removeNode(typing);
+
+        appendBotHTML(
+          `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
+        );
+
+        simulationStage = "completed";
+        return;
+      } catch (e) {
+        removeNode(typing);
+        appendBotHTML(`<div class="text-sm text-red-600">Failed to generate afternoon tasks.</div>`);
+        return;
+      }
+    }
+
+    // 3️⃣ Change role at any point
+    if (msg.includes("change")) {
+      simulationStage = "intro";
+      appendBubble("I want to change the role.", true);
+      appendBotHTML(`<div class="text-sm">Please type the new role you want to simulate.</div>`);
+      return;
+    }
+
+    // 4️⃣ New role entered
+    if (simulationStage === "intro") {
+      simulationRole = v.trim();
+      appendBubble(simulationRole, true);
+
+      const typing = showTypingIndicator(
+        ['Setting up new simulation...', 'Preparing orientation...'],
+        1000
+      );
+
+      try {
+        const reply = await callBackendWithPrompt(
+          buildDaySimulationPrompt(simulationRole)
+        );
+        removeNode(typing);
+
+        appendBotHTML(
+          `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
+        );
+
+        simulationStage = "await_confirmation";
+        return;
+      } catch (e) {
+        removeNode(typing);
+        appendBotHTML(`<div class="text-sm text-red-600">Simulation failed.</div>`);
+        return;
+      }
+    }
+  }
+
+  // ---------- Default chat ----------
   composer.value = '';
-
-  // 1️⃣ User agrees after orientation
-  if (
-    simulationStage === "await_confirmation" &&
-    (msg.includes("yes") || msg.includes("continue"))
-  ) {
-    simulationStage = "morning_tasks";
-    appendBubble("Yes, continue with this role.", true);
-
-    const typing = showTypingIndicator(
-      ['Preparing morning workflow...', 'Assigning real tasks...'],
-      1000
-    );
-
-    try {
-      const reply = await callBackendWithPrompt(
-        buildMorningTaskPrompt(simulationRole)
-      );
-      removeNode(typing);
-
-      appendBotHTML(
-        `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
-      );
-
-      simulationStage = "await_morning_done";
-      return;
-    } catch (e) {
-      removeNode(typing);
-      appendBotHTML(`<div class="text-sm text-red-600">Failed to generate morning tasks.</div>`);
-      return;
-    }
+  try {
+    await callFlashChat(v);
+  } catch (e) {
+    console.error("sendBtn flash chat error:", e);
+    appendBotHTML('<div class="text-sm text-red-600">Oops — chat failed.</div>');
   }
-
-  // 2️⃣ Morning tasks completed
-  if (
-    simulationStage === "await_morning_done" &&
-    msg.includes("done")
-  ) {
-    simulationStage = "afternoon_tasks";
-    appendBubble("DONE", true);
-
-    const typing = showTypingIndicator(
-      ['Preparing afternoon tasks...', 'Continuing workday...'],
-      1000
-    );
-
-    try {
-      const reply = await callBackendWithPrompt(
-        buildAfternoonTaskPrompt(simulationRole)
-      );
-      removeNode(typing);
-
-      appendBotHTML(
-        `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
-      );
-
-      simulationStage = "completed";
-      return;
-    } catch (e) {
-      removeNode(typing);
-      appendBotHTML(`<div class="text-sm text-red-600">Failed to generate afternoon tasks.</div>`);
-      return;
-    }
-  }
-
-  // 3️⃣ Change role at any point
-  if (msg.includes("change")) {
-    simulationStage = "intro";
-    appendBubble("I want to change the role.", true);
-    appendBotHTML(`<div class="text-sm">Please type the new role you want to simulate.</div>`);
-    return;
-  }
-
-  // 4️⃣ New role entered
-  if (simulationStage === "intro") {
-    simulationRole = v.trim();
-    appendBubble(simulationRole, true);
-
-    const typing = showTypingIndicator(
-      ['Setting up new simulation...', 'Preparing orientation...'],
-      1000
-    );
-
-    try {
-      const reply = await callBackendWithPrompt(
-        buildDaySimulationPrompt(simulationRole)
-      );
-      removeNode(typing);
-
-      appendBotHTML(
-        `<div class="text-sm">${escapeHtml(reply).replace(/\n/g, '<br/>')}</div>`
-      );
-
-      simulationStage = "await_confirmation";
-      return;
-    } catch (e) {
-      removeNode(typing);
-      appendBotHTML(`<div class="text-sm text-red-600">Simulation failed.</div>`);
-      return;
-    }
-  }
-}
-
-// ---------- Default chat ----------
-composer.value = '';
-try {
-  await callFlashChat(v);
-} catch (e) {
-  console.error("sendBtn flash chat error:", e);
-  appendBotHTML('<div class="text-sm text-red-600">Oops — chat failed.</div>');
-}
 
 });
 
@@ -1763,7 +1728,7 @@ function startSurvey() {
 // ------------------ Attachments / speech code ------------------
 const micBtn = document.getElementById('micBtn');
 const attachBtn = document.getElementById('attachBtn');
-let fileInput = document.getElementById('fileInput'); 
+let fileInput = document.getElementById('fileInput');
 
 // Speech recognition 
 let recognition = null;
@@ -1787,16 +1752,16 @@ if (micBtn) {
     let finalTranscript = "";
     recognition.onstart = () => {
       recognizing = true;
-      micBtn.classList.add('ring-2','ring-[#d3ab9e]');
+      micBtn.classList.add('ring-2', 'ring-[#d3ab9e]');
     };
     recognition.onend = () => {
       recognizing = false;
-      micBtn.classList.remove('ring-2','ring-[#d3ab9e]');
+      micBtn.classList.remove('ring-2', 'ring-[#d3ab9e]');
     };
     recognition.onerror = (e) => {
       console.error("Speech recognition error:", e);
       recognizing = false;
-      micBtn.classList.remove('ring-2','ring-[#d3ab9e]');
+      micBtn.classList.remove('ring-2', 'ring-[#d3ab9e]');
     };
     recognition.onresult = (ev) => {
       let interim = "";
@@ -1817,7 +1782,7 @@ if (micBtn) {
       else {
         finalTranscript = "";
         composer.value = "";
-        try { recognition.start(); } catch(err) { console.error("recognition.start() error:", err); }
+        try { recognition.start(); } catch (err) { console.error("recognition.start() error:", err); }
       }
     });
   }
@@ -1834,7 +1799,7 @@ attachBtn?.addEventListener('click', (e) => {
   document.body.appendChild(inp);
 
   const cleanupInput = () => {
-    try { if (inp && inp.parentNode) inp.parentNode.removeChild(inp); } catch(e) {}
+    try { if (inp && inp.parentNode) inp.parentNode.removeChild(inp); } catch (e) { }
   };
 
   inp.addEventListener('change', async (ev) => {
@@ -1853,7 +1818,7 @@ attachBtn?.addEventListener('click', (e) => {
           <div class="thumb" style="width:56px;height:56px;flex:0 0 56px;border-radius:8px;overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center;border:1px solid #eee"></div>
           <div style="flex:1">
             <div class="fname" style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(file.name)}</div>
-            <div class="fmeta" style="font-size:12px;color:#666">${Math.round(file.size/1024)} KB • ${escapeHtml(file.type || 'file')}</div>
+            <div class="fmeta" style="font-size:12px;color:#666">${Math.round(file.size / 1024)} KB • ${escapeHtml(file.type || 'file')}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px">
             <button class="send-attach inline-flex items-center justify-center rounded px-3 py-1 bg-[#d3ab9e] text-white text-xs">Send to AI</button>
@@ -1877,7 +1842,7 @@ attachBtn?.addEventListener('click', (e) => {
         } else {
           thumb.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c5bcb9" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`;
         }
-        bubble._dataURL = rEv.target.result; 
+        bubble._dataURL = rEv.target.result;
       };
       reader.readAsDataURL(file);
 
@@ -1905,12 +1870,12 @@ attachBtn?.addEventListener('click', (e) => {
             const payload = { filename: file.name, mime: file.type, dataURL: bubble._dataURL, answers: surveyAnswers };
             const resp = await fetch(`${BACKEND_BASE}/api/uploadResume`, {
               method: 'POST',
-              headers: {"Content-Type": "application/json"},
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
             });
 
             if (!resp.ok) {
-              const t = await resp.text().catch(()=>"(no body)");
+              const t = await resp.text().catch(() => "(no body)");
               console.error("uploadResume error:", resp.status, t);
               appendBubble("Sorry — couldn't analyze the resume right now. Please try again.", false);
             } else {
@@ -1919,8 +1884,12 @@ attachBtn?.addEventListener('click', (e) => {
               if (j?.resumeSummary) {
                 surveyAnswers.resumeSummary = j.resumeSummary;
                 if (surveyDocRef) {
-                  try { await updateDoc(surveyDocRef, { resumeSummary: j.resumeSummary, updatedAt: new Date() });
-                } catch(e){/*ignore*/ }
+                  try {
+                    await authFetch(`${API_BASE}/survey`, {
+                      method: 'PUT',
+                      body: JSON.stringify({ resumeSummary: j.resumeSummary })
+                    });
+                  } catch (e) {/*ignore*/ }
                 }
               }
 
@@ -1930,10 +1899,14 @@ attachBtn?.addEventListener('click', (e) => {
                 const reply = await callBackendWithPrompt(prompt);
                 // persist ai suggestions
                 if (surveyDocRef) {
-                  try { await updateDoc(surveyDocRef, { ai_suggestions: reply, updatedAt: new Date(), stage: "suggestions_sent" });
-                  surveyStage = "suggestions_sent";
-                  updateRoleButtonsState();
-                  } catch(e){/*ignore*/ }
+                  try {
+                    await authFetch(`${API_BASE}/survey`, {
+                      method: 'PUT',
+                      body: JSON.stringify({ ai_suggestions: reply, stage: "suggestions_sent" })
+                    });
+                    surveyStage = "suggestions_sent";
+                    updateRoleButtonsState();
+                  } catch (e) {/*ignore*/ }
                 }
                 renderSuggestionsAccordion(String(reply || ""));
               } catch (err) {
@@ -1951,7 +1924,7 @@ attachBtn?.addEventListener('click', (e) => {
             });
 
             if (!resp.ok) {
-              const txt = await resp.text().catch(()=>"(no body)");
+              const txt = await resp.text().catch(() => "(no body)");
               console.error("Attachment backend error:", resp.status, txt);
               appendBubble("Sorry — couldn't process the attachment right now.", false);
             } else {
@@ -1967,9 +1940,9 @@ attachBtn?.addEventListener('click', (e) => {
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
         }
       });
-    }); 
+    });
     cleanupInput();
-  }); 
+  });
 
   inp.click();
 });
@@ -2052,7 +2025,7 @@ function showRetakeToast(message, onConfirm) {
 
   okBtn.addEventListener('click', () => {
     cleanup();
-    try { if (typeof onConfirm === 'function') onConfirm(); } catch(e){ console.error(e); }
+    try { if (typeof onConfirm === 'function') onConfirm(); } catch (e) { console.error(e); }
   });
 
   cancelBtn.addEventListener('click', () => {
@@ -2120,18 +2093,19 @@ async function onRetakeClick(e) {
     surveyActive = false;
 
     if (currentUser) {
-      const docRef = doc(db, "surveys", currentUser.uid);
       // Set answers empty and clear AI outputs
-      await setDoc(docRef, {
-        answers: {},
-        stage: "in_progress",
-        chosenRole: "", 
-        updatedAt: new Date(),
-        ai_suggestions: "",
-        skill_gap: null,
-        roadmap_text: ""
-      }, { merge: true });
-      surveyDocRef = docRef;
+      await authFetch(`${API_BASE}/survey`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          answers: {},
+          stage: "in_progress",
+          chosenRole: "",
+          ai_suggestions: "",
+          skill_gap: null,
+          roadmap_text: ""
+        })
+      });
+      surveyDocRef = true;
       surveyStage = "in_progress";
       surveyChosenRole = null;
       surveyAnswers.chosenRole = "";
@@ -2209,19 +2183,19 @@ function renderSuggestionsAccordion(replyText) {
       </div>
       <div class="accordion-body">
         ${items.map(it => {
-          const parts = it.split(/\s+[—\-–:]\s+/);
-          const role = escapeHtml(parts[0].trim());
-          const expl = parts[1] ? escapeHtml(parts.slice(1).join(' - ').trim()) : "";
-          if (hasChosenRole) {
-            return `<div class="py-2"><div class="flex items-center justify-between"><div class="text-sm font-medium">${role}</div><button data-role="${role}" disabled aria-disabled="true" class="role-btn px-3 py-1 rounded-full text-xs bg-[#f3e8e3] text-[#a77a6a] opacity-70 pointer-events-none">Choose</button></div><div class="text-xs text-gray-600 mt-1">${expl}</div></div>`;
-          } else {
-            return `<div class="py-2"><div class="flex items-center justify-between"><div class="text-sm font-medium">${role}</div><button data-role="${role}" class="role-btn px-3 py-1 rounded-full bg-[#d3ab9e] text-white text-xs">Choose</button></div><div class="text-xs text-gray-600 mt-1">${expl}</div></div>`;
-          }
-        }).join('')}
+      const parts = it.split(/\s+[—\-–:]\s+/);
+      const role = escapeHtml(parts[0].trim());
+      const expl = parts[1] ? escapeHtml(parts.slice(1).join(' - ').trim()) : "";
+      if (hasChosenRole) {
+        return `<div class="py-2"><div class="flex items-center justify-between"><div class="text-sm font-medium">${role}</div><button data-role="${role}" disabled aria-disabled="true" class="role-btn px-3 py-1 rounded-full text-xs bg-[#f3e8e3] text-[#a77a6a] opacity-70 pointer-events-none">Choose</button></div><div class="text-xs text-gray-600 mt-1">${expl}</div></div>`;
+      } else {
+        return `<div class="py-2"><div class="flex items-center justify-between"><div class="text-sm font-medium">${role}</div><button data-role="${role}" class="role-btn px-3 py-1 rounded-full bg-[#d3ab9e] text-white text-xs">Choose</button></div><div class="text-xs text-gray-600 mt-1">${expl}</div></div>`;
+      }
+    }).join('')}
       </div>
     `;
 
-    appendBotHTML(card.outerHTML,{ avatar: false });
+    appendBotHTML(card.outerHTML, { avatar: false });
     const latest = chatScroll.lastElementChild;
     const header = latest.querySelector('.accordion-header');
     const body = latest.querySelector('.accordion-body');
@@ -2230,16 +2204,16 @@ function renderSuggestionsAccordion(replyText) {
     });
 
 
-latest.querySelectorAll('.role-btn').forEach(btn => {
-  if (btn.disabled) {
-    btn.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
-    btn.title = "Retake survey to choose a new role";
-  } else {
-    btn.classList.remove('opacity-70','pointer-events-none','bg-[#f3e8e3]','text-[#a77a6a]','opacity-50','cursor-not-allowed');
-    btn.classList.add('bg-[#d3ab9e]','text-white');
-    btn.setAttribute('aria-disabled', 'false');
-  }
-});
+    latest.querySelectorAll('.role-btn').forEach(btn => {
+      if (btn.disabled) {
+        btn.classList.add('opacity-50', 'pointer-events-none', 'cursor-not-allowed');
+        btn.title = "Retake survey to choose a new role";
+      } else {
+        btn.classList.remove('opacity-70', 'pointer-events-none', 'bg-[#f3e8e3]', 'text-[#a77a6a]', 'opacity-50', 'cursor-not-allowed');
+        btn.classList.add('bg-[#d3ab9e]', 'text-white');
+        btn.setAttribute('aria-disabled', 'false');
+      }
+    });
   });
   updateRoleButtonsState();
 }
@@ -2258,6 +2232,33 @@ document.addEventListener('DOMContentLoaded', () => {
   // render the intro UI (Start Survey button etc.)
   renderIntroInitial();
 
+
+  function loadFlashHistory() {
+    try {
+      const raw = localStorage.getItem('flash_chat_history');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveFlashHistory(hist) {
+    try {
+      localStorage.setItem('flash_chat_history', JSON.stringify(hist));
+    } catch (e) {}
+  }
+
+  async function renderFlashHistoryOnLoad() {
+    if (currentUser) {
+      await loadLastFlashMessages();
+    } else {
+      const hist = loadFlashHistory();
+      hist.forEach(m => {
+        if (m.role === 'user') appendBubble(m.text, true);
+        else appendBotHTML(`<div class="text-sm">${escapeHtml(m.text).replace(/\*\*/g, '').replace(/\n/g, '<br/>')}</div>`);
+      });
+    }
+  }
 
   try {
     const p = renderFlashHistoryOnLoad();

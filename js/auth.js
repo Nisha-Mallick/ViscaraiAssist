@@ -11,21 +11,9 @@ import {
   updateProfile
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+// No Firestore imports needed
+import { authFetch } from './utils/authFetch.js';
+import { API_BASE } from './config/api.js';
 
 // ------------------ Firebase Configuration ------------------ 
 
@@ -41,8 +29,7 @@ const firebaseConfig = {
 // ------------------ Init Firebase ------------------ 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Firestore and storage moved to backend
 const googleProvider = new GoogleAuthProvider();
 
 // ------------------ Authentication Helpers ------------------ 
@@ -60,36 +47,36 @@ export function onAuthChange(callback) {
 // --------- This create user doc if not exists ---------
 export async function createUserDocIfNotExists(user) {
   if (!user) return;
-  const uRef = doc(db, "users", user.uid);
-  const snap = await getDoc(uRef);
-
-  if (!snap.exists()) {
-    const docData = {
-      uid: user.uid,
-      email: user.email || null,
-      displayName: user.displayName || null,
-      photoURL: user.photoURL || null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      goals: null,
-      skills: [],
-      strengths: []
-    };
-    await setDoc(uRef, docData);
-    return docData;
+  try {
+    const res = await authFetch(`${API_BASE}/user/profile`, {
+      method: 'POST',
+      body: JSON.stringify({
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.error("createUserDocIfNotExists:", e);
   }
-  return snap.data();
+  return null;
 }
 
 export async function getUserDoc(uid) {
   try {
-    const uRef = doc(db, "users", uid);
-    const snap = await getDoc(uRef);
-    return snap.exists() ? snap.data() : null;
+    const res = await authFetch(`${API_BASE}/user/profile`, {
+      method: 'GET'
+    });
+    if (res.ok) {
+      return await res.json();
+    }
   } catch (e) {
     console.error("getUserDoc:", e);
-    return null;
   }
+  return null;
 }
 
 // -------- Signing up with email --------
@@ -162,5 +149,5 @@ export async function uploadProfilePhoto(fileOrBlob) {
 }
 
 
-// -------- This exports authentication, database and storage for direct access if needed ---------
-export { auth, db, storage };
+// -------- This exports authentication for direct access if needed ---------
+export { auth };

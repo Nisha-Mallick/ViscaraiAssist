@@ -7,7 +7,12 @@
   <link rel="icon" href="/public/assets/logo.svg" />
   <link href="./css/output.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="./js/take-test.js" defer></script>
+  <script type="module" src="./js/take-test.js" defer></script>
+  
+  <!-- MediaPipe Face Mesh -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
   <style>
     :root{
       --pale-dogwood:#d3ab9e;        
@@ -26,6 +31,24 @@
     .drawer.open{ transform:translateX(0); }
     .reveal{ opacity:0; transform:translateY(12px); transition: all .6s ease; }
     .reveal.show{ opacity:1; transform:translateY(0); }
+
+    /* AI Avatar Animations */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(188, 126, 106, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(188, 126, 106, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(188, 126, 106, 0); }
+    }
+    @keyframes subtle-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .avatar-speaking {
+      animation: pulse-ring 1.5s infinite;
+      border-color: #bc7e6a !important;
+    }
+    .avatar-idle {
+      animation: subtle-breathe 4s infinite ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-[#fffbff] text-[#3e251b] selection:bg-[#eac9c1] selection:text-black">
@@ -134,7 +157,10 @@
           </p>
           <div class="text-sm mb-4">
             <div class="font-semibold mb-1">Topic (based on your chosen career):</div>
-            <div id="mockTopic" class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">—</div>
+            <select id="mockTopicSelect" class="w-full rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2 outline-none focus:border-[#bc7e6a]">
+              <option value="role">Role-Based Test</option>
+              <option value="skillgap">Skill Gap Test (Mock)</option>
+            </select>
           </div>
           <button id="startMock" class="relative overflow-hidden rounded-xl bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-4 py-2 font-semibold shadow transition">
             <span class="relative z-10">START YOUR TEST</span>
@@ -156,7 +182,11 @@
         </div>
 
         <!-- Right Questions Panel -->
-        <div class="rounded-2xl border border-[#f3e8e3] bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-[#f3e8e3] bg-white p-5 shadow-sm relative">
+          <div id="mockLoader" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-2xl">
+            <i class="fas fa-spinner fa-spin text-3xl text-[#bc7e6a] mb-2"></i>
+            <span class="text-sm font-semibold text-[#bc7e6a]">Generating Questions... Please wait.</span>
+          </div>
           <div id="mockQWrap" class="text-sm text-[#6b5b55]">
             <div class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">
               Your questions will be displayed here.
@@ -174,7 +204,10 @@
     </p>
        <div class="text-sm mb-3">
            <div class="font-semibold mb-1">Topic (based on your chosen career):</div>
-           <div id="mockTopicSm" class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">—</div>
+           <select id="mockTopicSmSelect" class="w-full rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2 outline-none focus:border-[#bc7e6a]">
+              <option value="role">Role-Based Test</option>
+              <option value="skillgap">Skill Gap Test (Mock)</option>
+            </select>
        </div>
            <button id="startMockSm" class="relative overflow-hidden rounded-xl bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-3 py-2 text-sm font-semibold shadow">
             <span class="relative z-10">START YOUR TEST</span>
@@ -184,7 +217,11 @@
    </div>
 
   <!-- Questions -->
-  <div class="rounded-2xl border border-[#f3e8e3] bg-white p-4 shadow-sm">
+  <div class="rounded-2xl border border-[#f3e8e3] bg-white p-4 shadow-sm relative">
+    <div id="mockLoaderSm" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-2xl">
+      <i class="fas fa-spinner fa-spin text-2xl text-[#bc7e6a] mb-2"></i>
+      <span class="text-xs font-semibold text-[#bc7e6a]">Generating Questions... Please wait.</span>
+    </div>
     <div id="mockQWrapSm" class="text-sm text-[#6b5b55]">
       <div class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">
         Your questions will be displayed here.
@@ -225,9 +262,13 @@
           </p>
           <div class="text-sm mb-4">
             <div class="font-semibold mb-1">Topic Name:</div>
-            <div id="aptTopic" class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">—</div>
+            <select id="aptTopicSelect" class="w-full rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2 outline-none focus:border-[#bc7e6a]">
+              <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+              <option value="Logical Reasoning">Logical Reasoning</option>
+              <option value="Verbal Ability">Verbal Ability</option>
+            </select>
           </div>
-           <button id="startMock" class="relative overflow-hidden rounded-xl bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-4 py-2 font-semibold shadow transition">
+           <button id="startApt" class="relative overflow-hidden rounded-xl bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-4 py-2 font-semibold shadow transition">
             <span class="relative z-10">START YOUR TEST</span>
             <!-- using Glow effect here -->
             <span class="absolute inset-0 -translate-x-full animate-glassGlow bg-gradient-to-r from-transparent via-[#FFB5A7]/70 to-transparent"></span>
@@ -247,7 +288,11 @@
         </div>
 
         <!-- Right (Questions) -->
-        <div class="rounded-2xl border border-[#f3e8e3] bg-white p-5 shadow-sm">
+        <div class="rounded-2xl border border-[#f3e8e3] bg-white p-5 shadow-sm relative">
+          <div id="aptLoader" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-2xl">
+            <i class="fas fa-spinner fa-spin text-3xl text-[#bc7e6a] mb-2"></i>
+            <span class="text-sm font-semibold text-[#bc7e6a]">Generating Questions... Please wait.</span>
+          </div>
           <div id="aptQWrap" class="text-sm text-[#6b5b55]">
             <div class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">
               Your questions will be displayed here.
@@ -265,7 +310,11 @@
             </p>
            <div class="text-sm mb-3">
              <div class="font-semibold mb-1">Topic Name:</div>
-             <div id="aptTopicSm" class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">—</div>
+             <select id="aptTopicSmSelect" class="w-full rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2 outline-none focus:border-[#bc7e6a]">
+              <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+              <option value="Logical Reasoning">Logical Reasoning</option>
+              <option value="Verbal Ability">Verbal Ability</option>
+            </select>
            </div>
               <button id="startAptSm" class="relative overflow-hidden rounded-xl bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-3 py-2 text-sm font-semibold shadow">
               <span class="relative z-10">START YOUR TEST</span>
@@ -275,7 +324,11 @@
           </div>
 
             <!-- Questions -->
-          <div class="rounded-2xl border border-[#f3e8e3] bg-white p-4 shadow-sm">
+          <div class="rounded-2xl border border-[#f3e8e3] bg-white p-4 shadow-sm relative">
+            <div id="aptLoaderSm" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-2xl">
+              <i class="fas fa-spinner fa-spin text-2xl text-[#bc7e6a] mb-2"></i>
+              <span class="text-xs font-semibold text-[#bc7e6a]">Generating Questions... Please wait.</span>
+            </div>
             <div id="aptQWrapSm" class="text-sm text-[#6b5b55]">
                <div class="rounded-lg border border-[#f3e8e3] bg-[#fffbff] px-3 py-2">
                  Your questions will be displayed here.
@@ -308,20 +361,68 @@
     </div>
 
   <div class="rounded-2xl border border-[#f3e8e3] bg-white p-5 shadow-sm">
+    
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-[#f3e8e3]">
+        <div class="font-semibold text-[#bc7e6a]">Live AI Career Interview</div>
+        <div class="text-sm font-medium">Role: <span id="interviewRoleSpan" class="text-black bg-[#f7f0ec] px-2 py-1 rounded-md">—</span></div>
+        <div class="text-sm font-bold text-black" id="questionCounter">Question 0/10</div>
+    </div>
+
     <!-- Live AI SCREEN -->
-    <div class="rounded-xl border border-[#ebd8d0] p-3">
-      <div class="relative flex flex-col">
-        <video id="video" class="w-full rounded-lg bg-black/5 aspect-video" autoplay playsinline muted></video>
-        
-        <!-- Overlay inside video -->
-          <div id="aiOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200 rounded-lg">
-            <div class="text-sm font-semibold text-black mb-3 md:text-lg">AI SCREEN</div>
-            <button id="startInterview" class="relative overflow-hidden rounded-full bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-5 py-2 font-semibold shadow ">
-             <span class="relative z-10">START YOUR INTERVIEW</span>
-             <span class="absolute inset-0 -translate-x-full animate-glassGlow bg-gradient-to-r from-transparent via-[#FFB5A7]/70 to-transparent"></span>
-            </button>
-          </div>
+    <div class="rounded-xl border border-[#ebd8d0] p-1 bg-black relative overflow-hidden h-[400px] md:h-[500px]">
+      
+      <!-- Center: AI Avatar -->
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+        <div id="aiAvatarContainer" class="relative rounded-full border-4 border-transparent p-1 transition-all duration-300 avatar-idle">
+            <img src="./assets/Female-AI_Avatar.png" alt="AI Interviewer" class="w-32 h-32 md:w-48 md:h-48 rounded-full object-cover bg-[#f3e8e3]" onerror="this.src='./assets/logo.png'">
         </div>
+        <div id="aiSpeakingIndicator" class="mt-4 text-xs font-semibold text-white bg-black/50 px-3 py-1 rounded-full hidden">
+            <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></span> AI is speaking...
+        </div>
+      </div>
+
+      <!-- Left Panel: Subtitles/Transcript -->
+      <div class="absolute top-4 left-4 w-64 md:w-80 h-[250px] md:h-[350px] bg-black/40 backdrop-blur-md rounded-xl p-3 flex flex-col hidden" id="liveSubtitlesPanel">
+        <div class="text-xs text-white/70 font-semibold uppercase mb-2">Live Transcript</div>
+        <div id="subtitleScrollArea" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide text-sm">
+            <!-- AI Speech -->
+            <!-- Candidate Speech -->
+        </div>
+      </div>
+
+      <!-- Bottom Right: Candidate Webcam -->
+      <div class="absolute bottom-16 right-4 md:bottom-20 md:right-6 w-24 h-32 md:w-32 md:h-44 bg-gray-900 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg">
+        <video id="video" class="w-full h-full object-cover transform scale-x-[-1]" autoplay playsinline muted></video>
+        <!-- Premium Camera Disabled Overlay -->
+        <div id="cameraDisabledOverlay" class="absolute inset-0 bg-gradient-to-br from-[#0c1a30] to-[#12284c] flex flex-col items-center justify-center text-center p-2 hidden transition-all duration-300 z-10">
+          <i class="fas fa-video-slash text-white/50 text-lg md:text-2xl mb-2 animate-pulse"></i>
+          <span class="text-white/40 text-[9px] md:text-[10px] font-semibold uppercase tracking-wider leading-tight">Camera Disabled</span>
+        </div>
+      </div>
+
+      <!-- Bottom Center: Controls -->
+      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full hidden" id="interviewControls">
+        <button id="btnMic" class="h-12 w-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition">
+            <i class="fas fa-microphone"></i>
+        </button>
+        <button id="btnCam" class="h-12 w-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition">
+            <i class="fas fa-video"></i>
+        </button>
+        <button id="btnEnd" class="h-12 w-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition">
+            <i class="fas fa-phone-slash"></i>
+        </button>
+      </div>
+      
+      <!-- Overlay (Start Screen) -->
+      <div id="aiOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-[#fffbff] rounded-lg z-10">
+        <div class="text-sm font-semibold text-black mb-1 md:text-lg">Ready to start?</div>
+        <p class="text-xs text-gray-500 mb-4">Please ensure you are in a quiet room.</p>
+        <button id="startInterview" class="relative overflow-hidden rounded-full bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white px-6 py-3 font-bold shadow-lg transition transform hover:scale-105">
+         <span class="relative z-10"><i class="fas fa-play mr-2"></i> START YOUR INTERVIEW</span>
+         <span class="absolute inset-0 -translate-x-full animate-glassGlow bg-gradient-to-r from-transparent via-[#FFB5A7]/70 to-transparent"></span>
+        </button>
+      </div>
     </div>
   </div>
       <!-- Feedback + Suggestions -->

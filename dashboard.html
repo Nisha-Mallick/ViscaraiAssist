@@ -212,7 +212,7 @@
       <div class="flex items-center justify-between">
         <div class="text-sm text-[#40312d]">No.of Mock Test Completed :</div>
         <div class="ml-6 flex-1 px-4 relative">
-          <div class="text-[10px] text-[#6b5b55] text-left ml-8 mb-1">5 Points</div>
+          <div class="text-[10px] text-[#6b5b55] text-left ml-8 mb-1">10 Points</div>
           <div class="w-full md:w-[750px] ml-6 rounded-full border border-[#edddd8] bg-white h-6 overflow-hidden relative">
             <!-- filled part-1 -->
             <div id="progress-fill-1" class="h-6 rounded-full transition-all" style="width:0%; background: linear-gradient(90deg, #d3ab9e 0%, #d3ab9e 100%);"></div>
@@ -297,6 +297,35 @@
         <button id="save-photo"
                 class="px-4 py-2 rounded-lg bg-[#bc7e6a] text-white hover:bg-[#d3ab9e]">Save</button>
       </div>
+    </div>
+  </div>
+
+  <!-- AI Interview Points Reward Modal -->
+  <div id="points-reward-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-[#fffbff] rounded-2xl p-8 w-[420px] text-center shadow-2xl border border-[#e7bc91] transform scale-95 transition-transform duration-300">
+      <!-- Celebratory Icon -->
+      <div class="mx-auto w-20 h-20 bg-[#F8EDEB] rounded-full flex items-center justify-center text-5xl shadow-md border border-[#ebd8d0] mb-5">
+        🏆
+      </div>
+      
+      <!-- Modal Title -->
+      <h3 class="font-serif font-extrabold text-2xl text-[#a62d29] mb-3">Congratulations!</h3>
+      
+      <!-- Subtitle/Reward badge -->
+      <div class="inline-block px-4 py-1.5 rounded-full bg-[#ebd8d0]/50 text-[#bc7e6a] font-bold text-xs uppercase tracking-wider mb-4 border border-[#e7bc91]/30">
+        Reward Earned 🎉
+      </div>
+      
+      <!-- Dynamic Message -->
+      <p id="points-reward-message" class="text-[#653b2e] text-base font-medium px-2 leading-relaxed">
+        You have earned 7.5 points for completing one session.
+      </p>
+      
+      <!-- Close/Claim button -->
+      <button id="close-points-modal"
+              class="mt-6 w-full py-3 rounded-full bg-[#bc7e6a] hover:bg-[#d3ab9e] text-white font-bold text-sm shadow-glow transition duration-200 uppercase tracking-wider">
+        Awesome!
+      </button>
     </div>
   </div>
 

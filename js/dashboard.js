@@ -1,10 +1,98 @@
 // -------- dashboard.js ---------
 import { onAuthChange, uploadProfilePhoto } from "./auth.js";
 import { getAuth, updateProfile } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { doc, getDoc, collection, updateDoc, getFirestore, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { authFetch } from './utils/authFetch.js';
+import { API_BASE } from './config/api.js';
 
 const auth = getAuth();
-const db = getFirestore();
+
+let lastMockCycle = 0;
+let lastAptCycle = 0;
+
+function updateGamificationStats(userDoc) {
+  const mockCount = userDoc.mockTestCount || 0;
+  const aptCount = userDoc.aptitudeTestCount || 0;
+  const totalPoints = userDoc.totalPoints || 0;
+
+  // Mock Test Cycle (4 tests = 100%)
+  const mockCycleMod = mockCount % 4;
+  const mockPercent = mockCount > 0 && mockCycleMod === 0 ? 100 : (mockCycleMod * 25);
+  const mockFracStr = mockCount > 0 && mockCycleMod === 0 ? '4/4' : `${mockCycleMod}/4`;
+  
+  const pFill1 = document.getElementById('progress-fill-1');
+  const pFrac1 = document.getElementById('progress-frac-1');
+  if (pFill1) pFill1.style.width = `${mockPercent}%`;
+  if (pFrac1) pFrac1.textContent = mockFracStr;
+
+  // Aptitude Test Cycle (4 tests = 100%)
+  const aptCycleMod = aptCount % 4;
+  const aptPercent = aptCount > 0 && aptCycleMod === 0 ? 100 : (aptCycleMod * 25);
+  const aptFracStr = aptCount > 0 && aptCycleMod === 0 ? '4/4' : `${aptCycleMod}/4`;
+
+  const pFill2 = document.getElementById('progress-fill-2');
+  const pFrac2 = document.getElementById('progress-frac-2');
+  if (pFill2) pFill2.style.width = `${aptPercent}%`;
+  if (pFrac2) pFrac2.textContent = aptFracStr;
+
+  // Total Tests display
+  const totalTests = document.getElementById('tests-count');
+  if (totalTests) totalTests.textContent = String(mockCount + aptCount).padStart(2, '0');
+
+  // Gauge scale (Max 100 points for full gauge)
+  const gaugePercent = Math.min(100, Math.max(0, totalPoints));
+  const gaugeArc = document.getElementById('gauge-arc');
+  const gaugeLabel = document.getElementById('gauge-label');
+  if (gaugeArc) {
+    const dashVal = (gaugePercent / 100) * 180;
+    gaugeArc.setAttribute('stroke-dasharray', `${dashVal} 180`);
+  }
+  if (gaugeLabel) {
+    gaugeLabel.textContent = `${gaugePercent}%`;
+  }
+
+  // Popups for rewards
+  const currentMockCycle = Math.floor(mockCount / 4);
+  const currentAptCycle = Math.floor(aptCount / 4);
+
+  // Since this gets called on load, we don't want to spam popups on refresh.
+  // We only show popups if the local cycle count changed during the session.
+  if (lastMockCycle > 0 && currentMockCycle > lastMockCycle) {
+    showRewardPopup("10 Points", "Completing a Mock Test Cycle");
+  }
+  if (lastAptCycle > 0 && currentAptCycle > lastAptCycle) {
+    showRewardPopup("5 Points", "Completing an Aptitude Test Cycle");
+  }
+
+  // Update tracking
+  lastMockCycle = mockCount > 0 ? currentMockCycle : 0;
+  if (mockCount > 0 && mockCount % 4 === 0) lastMockCycle = currentMockCycle - 1; // if exactly at cycle, prepare for next
+
+  lastAptCycle = aptCount > 0 ? currentAptCycle : 0;
+  if (aptCount > 0 && aptCount % 4 === 0) lastAptCycle = currentAptCycle - 1;
+}
+
+function showRewardPopup(pointsText, reasonText) {
+  const modal = document.getElementById('points-reward-modal');
+  const msg = document.getElementById('points-reward-message');
+  if (modal && msg) {
+    msg.textContent = `You have earned ${pointsText} for ${reasonText}.`;
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.remove('opacity-0'), 10);
+  }
+}
+
+// Add close modal handler
+document.addEventListener('DOMContentLoaded', () => {
+  const closeBtn = document.getElementById('close-points-modal');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      const modal = document.getElementById('points-reward-modal');
+      modal.classList.add('opacity-0');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    });
+  }
+});
+
 
 // Elements
 const avatarEl = document.getElementById("profile-avatar");
@@ -226,14 +314,15 @@ onAuthChange(async (user, userDoc) => {
       (userDoc.skills && Array.isArray(userDoc.skills) ? userDoc.skills.join(", ") : (userDoc.skills || "none")) || "none";
     document.getElementById("strength-val").textContent =
       (userDoc.strengths && Array.isArray(userDoc.strengths) ? userDoc.strengths.join(", ") : (userDoc.strengths || "none")) || "none";
+    
+    updateGamificationStats(userDoc);
   }
 
    // --- Start: load last survey (skill gap + roadmap) and update dashboard UI ---
   try {
-    const surveyRef = doc(getFirestore(), "surveys", user.uid);
-    const surveySnap = await getDoc(surveyRef);
-    if (surveySnap && surveySnap.exists()) {
-      const sdata = surveySnap.data() || {};
+    const surveyRes = await authFetch(`${API_BASE}/survey/last`);
+    if (surveyRes.ok) {
+      const sdata = await surveyRes.json();
 
 // ensuring dynamic styles exist (only once)
 if (!document.getElementById("dashboard-dyn-style")) {
@@ -401,7 +490,7 @@ setProfileField(strengthEl, strengthsFromSurvey);
               if (cur) cur.body.push("");
               continue;
             }
-            const m = line.match(/^Step\s*(\d+)\s*[-—–:]\s*(.+)$/i);
+            const m = line.match(/^(?:#+\s*)?(?:Step\s*)?(\d+)\s*[.\-—–:]\s*(.+)$/i);
             if (m) {
               if (cur) steps.push(cur);
               cur = { num: Number(m[1]), title: m[2].trim(), body: [] };
@@ -434,34 +523,33 @@ setProfileField(strengthEl, strengthsFromSurvey);
           if (steps.length > 0) {
 for (const s of steps) {
   const li = document.createElement("li");
-  li.className = "mb-3";
+  li.className = "mb-6 relative";
 
   const titleRow = document.createElement("div");
-  titleRow.className = "flex items-start gap-3";
+  titleRow.className = "flex justify-between items-start mb-2";
 
-  // create checkbox
+  const titleText = document.createElement("strong");
+  titleText.className = "text-[#4b4340] text-base font-bold flex-1";
+  titleText.innerHTML = `Step ${s.num} — ${escapeHtml(s.title)}`;
+
+  const checkboxContainer = document.createElement("div");
+  checkboxContainer.className = "ml-4 flex-shrink-0 flex items-center";
+
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  checkbox.className = "h-4 w-4 mt-1 rounded border-[#edddd8] focus:ring-0";
+  // Standard large checkbox matching reference image
+  checkbox.style.width = "20px";
+  checkbox.style.height = "20px";
+  checkbox.style.cursor = "pointer";
+  checkbox.className = "rounded border-gray-300 text-[#007bff] focus:ring-[#007bff]";
+  
+  checkboxContainer.appendChild(checkbox);
 
-  // create container for title text
-  const titleText = document.createElement("div");
-  titleText.className = "flex-1";
-  const strong = document.createElement("strong");
-  strong.innerHTML = `Step ${s.num} — ${escapeHtml(s.title)}`;
-  titleText.appendChild(strong);
   titleRow.appendChild(titleText);
-
-  // Create a right-side wrapper for the subtitle / checkbox (align to right)
-  const rightWrap = document.createElement("div");
-  rightWrap.className = "flex items-center justify-end gap-2 ml-4";
-
-  // move checkbox inside rightWrap so that it appear on the right of the title
-  rightWrap.appendChild(checkbox);
-  titleRow.appendChild(rightWrap);
+  titleRow.appendChild(checkboxContainer);
 
   const bodyDiv = document.createElement("div");
-  bodyDiv.className = "text-xs text-[#6b5b55] mt-1";
+  bodyDiv.className = "text-sm text-gray-600 leading-relaxed";
   bodyDiv.innerHTML = s.body.map(b => escapeHtml(b)).join("<br/>") || "&nbsp;";
 
   li.appendChild(titleRow);
@@ -491,24 +579,20 @@ for (const s of steps) {
     const stored = localStorage.getItem(key);
     if (stored === "1") {
       checkbox.checked = true;
-      titleText.classList.add("opacity-60");
-      strong.classList.add("line-through");
+      titleText.classList.add("opacity-60", "line-through");
     }
 
     // toggle handler (showing left-side toast with ordinal text)
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
         localStorage.setItem(key, "1");
-        titleText.classList.add("opacity-60");
-        strong.classList.add("line-through");
+        titleText.classList.add("opacity-60", "line-through");
 
         const stepWord = ordinalWord(Number(s.num));
-        const stepWordCap = stepWord.charAt(0).toUpperCase() + stepWord.slice(1);
         showToast(`You have completed your ${stepWord} step towards bridging your skill gap`);
       } else {
         localStorage.removeItem(key);
-        titleText.classList.remove("opacity-60");
-        strong.classList.remove("line-through");
+        titleText.classList.remove("opacity-60", "line-through");
       }
     });
   } catch (e) {
@@ -546,6 +630,93 @@ for (const s of steps) {
           awardStarOnSurveyIfNeeded(sdata);
           } catch(e) { console.warn("star award failed", e); }
   }
+
+    // --- Start: load interview stats and update progress ---
+    try {
+        const interviewRes = await authFetch(`${API_BASE}/interview/stats`);
+        if (interviewRes.ok) {
+            const idata = await interviewRes.json();
+            const count = idata.count || 0;
+            
+            const progressFill = document.getElementById("progress-fill-3");
+            const progressFrac = document.getElementById("progress-frac-3");
+            
+            let points = 0;
+            if (count === 1) points = 7.5;
+            else if (count >= 2) points = 15;
+            
+            const percent = (points / 15) * 100;
+            
+            if (progressFill) progressFill.style.width = `${percent}%`;
+            if (progressFrac) progressFrac.textContent = count > 0 ? `${points}/15` : `0/15`;
+
+            // Update gauge count
+            const testsCountEl = document.getElementById("tests-count");
+            if (testsCountEl) {
+                // If there's an existing count, we add the interview count
+                const currentCount = parseInt(testsCountEl.textContent || "0");
+                testsCountEl.textContent = String(currentCount + count).padStart(2, '0');
+            }
+
+            // Show Toast if new points earned
+            const LAST_INTERVIEW_COUNT_KEY = "viscarai_last_interview_count";
+            const lastCount = parseInt(localStorage.getItem(LAST_INTERVIEW_COUNT_KEY) || "0");
+            if (count > lastCount) {
+                localStorage.setItem(LAST_INTERVIEW_COUNT_KEY, count.toString());
+                if (count === 1) showToast("You have earned 7.5 bonus points for your first Live AI Interview!");
+                else if (count === 2) showToast("You have earned 15 bonus points for completing Live AI Interviews!");
+                
+                // Increase profile star slightly for bonus
+                setStarProgress(1, count === 1 ? 50 : 100);
+            } else if (count > 0) {
+                setStarProgress(1, count === 1 ? 50 : 100);
+            }
+
+            // Check if interview completed popup is pending
+            if (localStorage.getItem('interview_completed_popup_pending') === 'true') {
+                localStorage.removeItem('interview_completed_popup_pending');
+                
+                const pointsRewardModal = document.getElementById('points-reward-modal');
+                const pointsRewardMessage = document.getElementById('points-reward-message');
+                const closePointsModalBtn = document.getElementById('close-points-modal');
+                
+                if (pointsRewardModal && pointsRewardMessage) {
+                    if (count >= 2) {
+                        pointsRewardMessage.textContent = "You have earned 15 points for completing both the session.";
+                    } else {
+                        pointsRewardMessage.textContent = "You have earned 7.5 points for completing one session.";
+                    }
+                    
+                    // Show modal with animation
+                    pointsRewardModal.classList.remove('hidden');
+                    pointsRewardModal.classList.add('flex');
+                    requestAnimationFrame(() => {
+                        pointsRewardModal.classList.remove('opacity-0');
+                        const card = pointsRewardModal.querySelector('div');
+                        if (card) {
+                            card.classList.remove('scale-95');
+                            card.classList.add('scale-100');
+                        }
+                    });
+                    
+                    closePointsModalBtn?.addEventListener('click', () => {
+                        pointsRewardModal.classList.add('opacity-0');
+                        const card = pointsRewardModal.querySelector('div');
+                        if (card) {
+                            card.classList.remove('scale-100');
+                            card.classList.add('scale-95');
+                        }
+                        setTimeout(() => {
+                            pointsRewardModal.classList.add('hidden');
+                            pointsRewardModal.classList.remove('flex');
+                        }, 300);
+                    });
+                }
+            }
+        }
+    } catch(err) {
+        console.warn("Failed to load interview stats for dashboard:", err);
+    }
 
     } catch (err) {
         console.warn("Failed to load survey for dashboard:", err);
@@ -626,8 +797,10 @@ savePhotoBtn?.addEventListener("click", async () => {
          const url = await uploadProfilePhoto(blob); // from Cloudinary
          await updateProfile(user, { photoURL: url }); // update Firebase Auth
 
-         const uRef = doc(db, "users", user.uid);
-         await updateDoc(uRef, { photoURL: url, updatedAt: serverTimestamp() });
+         await authFetch(`${API_BASE}/user/profile`, {
+           method: 'PUT',
+           body: JSON.stringify({ photoURL: url })
+         });
 
 
         avatarEl.src = url;
@@ -680,8 +853,10 @@ saveBtn?.addEventListener("click", async () => {
   try {
     await updateProfile(user, { displayName: newName });
 
-    const uRef = doc(db, "users", user.uid);
-    await updateDoc(uRef, { displayName: newName, updatedAt: serverTimestamp() });
+    await authFetch(`${API_BASE}/user/profile`, {
+      method: 'PUT',
+      body: JSON.stringify({ displayName: newName })
+    });
 
     displayNameEl.textContent = newName;
     editForm.classList.add("hidden");
