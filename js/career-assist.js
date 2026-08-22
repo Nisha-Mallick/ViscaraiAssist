@@ -767,8 +767,7 @@ async function callFlashChat(userMessage) {
     }
 
     // call backend with flash model override 
-    const reply = await callBackendWithPrompt(promptBody, { model: 'llama-3.1-8b-instant' });
-
+    const reply = await callBackendWithPrompt(promptBody, { model: 'gemini-2.5-flash' });
     removeNode(typing);
 
     const assistantText = String(reply || '').trim() || "Sorry, I couldn't generate a reply right now.";
